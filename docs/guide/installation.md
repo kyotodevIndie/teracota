@@ -6,7 +6,8 @@ description: Como instalar o Teracota no Windows e conectar a Tera ao Claude Cod
 
 ## Requisitos
 
-- **Windows 10 ou 11, 64 bits.** macOS e Linux ainda não são suportados (estão no
+- **Windows 10 ou 11, 64 bits.** O Linux é [experimental](#linux-experimental); o macOS
+  ainda não é suportado (está no
   [roadmap](https://github.com/kyotodevIndie/teracota/blob/main/ROADMAP.md)).
 - **Claude Code** com suporte a plugins (CLI ou app desktop), pra Tera reagir ao Claude.
   Sem ele, ela funciona como pet de desktop e pela [API local](/dev/api).
@@ -65,6 +66,36 @@ comando pra você colar. Reiniciar a sessão também funciona.
 O Claude também pode fazer a Tera falar e reagir quando quiser. Pra ligar: menu →
 **Deixar o Claude Code falar pela Tera**. Os detalhes estão em
 [Claude Code → Falas pelo MCP](./claude-code#falas-pelo-mcp-opcional).
+
+## Linux (experimental)
+
+Ainda não há instalador pra Linux: roda-se pelo código. Foi testado no **Arch com
+Hyprland** (Wayland); outras distros e ambientes devem funcionar, mas não foram
+validados. [Relatos e ajuda](/dev/contributing) são bem-vindos.
+
+```bash
+git clone https://github.com/kyotodevIndie/teracota.git
+cd teracota
+npm install
+npm start
+```
+
+Pra gerar o app empacotado: `npm run pack:linux` e rode `release/linux-unpacked/teracota`
+(ou `npm run dist:linux` pra um AppImage).
+
+- **Wayland:** o compositor ignora a posição pedida pela janela, então a Tera se
+  reabre sozinha via XWayland pra ficar no canto e passear.
+- **Bandeja:** precisa de suporte a StatusNotifier (a bandeja do Waybar tem). No GNOME
+  deve exigir a extensão AppIndicator.
+- **Abrir com o sistema:** ainda não existe no Linux, e o item não aparece no menu.
+- **Hyprland:** por ser uma janela flutuante, ela recebe blur, borda e sombra, e não
+  acompanha você entre workspaces. Em `hyprland.conf`:
+  ```
+  windowrule = match:class ^teracota$, no_blur on
+  windowrule = match:class ^teracota$, no_shadow on
+  windowrule = match:class ^teracota$, border_size 0
+  windowrule = match:class ^teracota$, pin on
+  ```
 
 ## Atualizar
 

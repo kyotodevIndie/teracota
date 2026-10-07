@@ -8,6 +8,7 @@ sugerir uma ideia, melhorar o código, desenhar uma skin ou traduzir falas.
 - [Conectando o seu Claude Code ao app em desenvolvimento](#conectando-o-seu-claude-code-ao-app-em-desenvolvimento)
 - [Onde fica cada coisa](#onde-fica-cada-coisa)
 - [Integrando um agente](#integrando-um-agente)
+- [Adicionando uma plataforma](#adicionando-uma-plataforma)
 - [Estilo de código](#estilo-de-código)
 - [Testes](#testes)
 - [Commits e pull requests](#commits-e-pull-requests)
@@ -28,8 +29,8 @@ Participando, você concorda com o [Código de Conduta](CODE_OF_CONDUCT.md).
 
 ## Rodando o projeto
 
-Precisa de **Node.js 22+** e **Windows** (é a plataforma suportada por enquanto;
-macOS e Linux estão no roadmap — ajuda bem-vinda).
+Precisa de **Node.js 22+**. **Windows** é a plataforma suportada; o **Linux** é
+experimental (testado no Arch com Hyprland) e o macOS está no roadmap — ajuda bem-vinda.
 
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git
@@ -87,6 +88,7 @@ A arquitetura completa (camadas, contratos, decisões) está em
 | Quero mudar... | Arquivo |
 |---|---|
 | Como cada ferramenta do Claude vira uma reação | `src/main/integrations/claude-code/adapter.ts` |
+| Suportar outro SO, distro ou compositor | `src/main/platform/` (veja [Adicionando uma plataforma](#adicionando-uma-plataforma)) |
 | Integrar outro agente | `src/main/integrations/` (veja [Integrando um agente](#integrando-um-agente)) |
 | API local (`/api/v1/event`) | `src/shared/protocol.ts` (validação) e `src/main/server.ts` |
 | Estados (pose, expressão, ícone, duração) | `src/renderer/states.ts` |
@@ -122,6 +124,21 @@ As regras que o CI cobra:
 
 Sem adapter oficial, dá pra integrar qualquer ferramenta pela [API local](docs/dev/api.md)
 (`/api/v1/event` com `source`), inclusive como protótipo antes de propor um adapter.
+
+## Adicionando uma plataforma
+
+Tudo que muda de um sistema pra outro fica em `src/main/platform/`, atrás da interface
+`Platform` (`types.ts`): um arquivo por sistema (`windows.ts`, `linux.ts`, `darwin.ts`).
+
+- **Outro SO:** crie `<nome>.ts`, implemente `Platform` e registre em `index.ts`.
+- **Outra distro ou compositor (KDE, sway, GNOME...):** trate dentro do `linux.ts`,
+  lendo o ambiente. Só vale um arquivo novo quando o comportamento for realmente outro.
+- **Algo novo que varia?** Acrescente o método na interface e implemente em cada arquivo.
+  Prefira funções puras que recebem `env`/`argv`, pra testar sem Electron.
+
+Um teste (`platform/platform.test.ts`) falha se `process.platform`, `win32`/`darwin` ou
+`XDG_*` aparecerem fora de `platform/`, e o de integrações impede que `platform/`
+cite agentes. Empacotamento fica no `package.json` (`build.<so>`).
 
 ## Estilo de código
 

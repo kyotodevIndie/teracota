@@ -76,7 +76,8 @@ instantly. If the app hangs, `curl` gives up within 2 seconds.
 
 ## Does it work on macOS or Linux?
 
-Not yet; the beta is Windows-only. macOS and Linux are on the
+Linux is **experimental** (see [how to run it](./installation#linux-experimental)); macOS
+isn't yet. Both are on the
 [roadmap](https://github.com/kyotodevIndie/teracota/blob/main/ROADMAP.md), and help is welcome.
 
 ## Does it work with other agents (Codex, OpenCode...)?

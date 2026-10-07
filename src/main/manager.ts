@@ -10,6 +10,7 @@ import { saveConfig, type Config } from './config';
 import { Entity, SIZE, cornerPosition, isOnScreen } from './entity';
 import { providerInfo } from './integrations';
 import type { AgentSignal } from './integrations/types';
+import { platform } from './platform';
 import { SessionTracker, sessionKey, type Session } from './sessions';
 
 export const MAX_ENTITIES = 5;
@@ -49,8 +50,8 @@ export class EntityManager {
     if (!this.config.onboarded) {
       this.updateConfig({ onboarded: true });
       // primeira vez: já abre junto com o sistema (dá pra desligar no menu).
-      // Só no app instalado — em dev registraria o Electron cru. Linux não suporta.
-      if (app.isPackaged && process.platform !== 'linux') app.setLoginItemSettings({ openAtLogin: true });
+      // Só no app instalado — em dev registraria o Electron cru.
+      if (app.isPackaged && platform.autostart.supported) app.setLoginItemSettings({ openAtLogin: true });
       setTimeout(() => this.entities[0]?.send({
         state: 'attention',
         duration: 5000,

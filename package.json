@@ -12,7 +12,9 @@
     "demo": "node dist/scripts/demo.js",
     "import-skin": "node dist/scripts/import-skin.js",
     "pack": "node build.mjs && electron-builder --win --dir",
+    "pack:linux": "node build.mjs && electron-builder --linux --dir",
     "dist": "node build.mjs && electron-builder --win",
+    "dist:linux": "node build.mjs && electron-builder --linux",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome lint",
@@ -64,6 +66,18 @@
         }
       ],
       "icon": "assets/icons/icon.png"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icons/icon.png",
+      "category": "Utility"
     },
     "nsis": {
       "oneClick": true,

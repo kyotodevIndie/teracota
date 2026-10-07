@@ -6,6 +6,7 @@ import { connectAgent, connectOpenSessions, speechEnabled, toggleSpeech } from '
 import { ADAPTERS } from './integrations';
 import type { Entity } from './entity';
 import { MAX_ENTITIES, type EntityManager } from './manager';
+import { platform } from './platform';
 import { listSkins, loadSkin } from './skins';
 
 function skinItems(manager: EntityManager): MenuItemConstructorOptions[] {
@@ -17,8 +18,6 @@ function skinItems(manager: EntityManager): MenuItemConstructorOptions[] {
     { label: 'Clássica (desenho)', type: 'radio', checked: current === SVG_SKIN_ID, click: () => manager.setSkin(SVG_SKIN_ID) },
   ];
 }
-
-const STARTUP_LABEL = process.platform === 'win32' ? 'Abrir com o Windows' : 'Abrir ao iniciar o sistema';
 
 function connectItems(manager: EntityManager): MenuItemConstructorOptions[] {
   return ADAPTERS.filter((a) => a.connect).flatMap((a): MenuItemConstructorOptions[] => [
@@ -61,13 +60,15 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
     { label: 'Voltar pro canto', click: () => (entity ? entity.resetPosition() : manager.resetPositions()) },
     { type: 'separator' },
     ...connectItems(manager),
-    {
-      label: app.isPackaged ? STARTUP_LABEL : `${STARTUP_LABEL} (só no app instalado)`,
-      type: 'checkbox',
-      checked: autoStart,
-      enabled: app.isPackaged,
-      click: () => app.setLoginItemSettings({ openAtLogin: !autoStart }),
-    },
+    ...(platform.autostart.supported
+      ? [{
+        label: app.isPackaged ? platform.autostart.label : `${platform.autostart.label} (só no app instalado)`,
+        type: 'checkbox' as const,
+        checked: autoStart,
+        enabled: app.isPackaged,
+        click: () => app.setLoginItemSettings({ openAtLogin: !autoStart }),
+      }]
+      : []),
     { type: 'separator' },
     ...(!app.isPackaged && entity
       ? [

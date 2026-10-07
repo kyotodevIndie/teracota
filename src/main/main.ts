@@ -10,6 +10,7 @@ import { EntityManager } from './manager';
 import { buildMenu } from './menu';
 import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
+import { platform } from './platform';
 import { startEventServer } from './server';
 import { loadSkin } from './skins';
 
@@ -44,8 +45,12 @@ function createTray(): void {
 // instalado, pra dar pra rodar os dois (use TERACOTA_PORT pra mudar a porta).
 if (!app.isPackaged) app.setName(`${APP_NAME} Dev`);
 
-// Só uma cópia do app (a porta é uma só)
-if (!app.requestSingleInstanceLock()) {
+const relaunchArgs = platform.relaunchArgs(process.env, process.argv);
+if (relaunchArgs) {
+  app.relaunch({ args: relaunchArgs });
+  app.exit(0);
+} else if (!app.requestSingleInstanceLock()) {
+  // Só uma cópia do app (a porta é uma só)
   app.quit();
 } else {
   app.setAppUserModelId('com.teracota.app');

@@ -13,7 +13,7 @@ Esta página é só o caminho rápido.
 
 ## Rodando pelo código
 
-Precisa de **Node.js 22+** e **Windows**.
+Precisa de **Node.js 22+**. Windows é a plataforma suportada; Linux é experimental.
 
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git

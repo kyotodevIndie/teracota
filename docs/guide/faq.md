@@ -75,7 +75,8 @@ falha na hora. Se o app travar, o `curl` desiste em até 2 segundos.
 
 ## Funciona no macOS ou no Linux?
 
-Ainda não. A versão beta é só pra Windows. macOS e Linux estão no
+O Linux é **experimental** (veja [como rodar](./installation#linux-experimental)); o macOS
+ainda não. Ambos estão no
 [roadmap](https://github.com/kyotodevIndie/teracota/blob/main/ROADMAP.md), e ajuda é bem-vinda.
 
 ## Funciona com outros agentes (Codex, OpenCode...)?

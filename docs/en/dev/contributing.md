@@ -14,7 +14,7 @@ is the quick path.
 
 ## Running from source
 
-You need **Node.js 22+** and **Windows**.
+You need **Node.js 22+**. Windows is the supported platform; Linux is experimental.
 
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git

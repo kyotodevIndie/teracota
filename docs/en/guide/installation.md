@@ -11,7 +11,8 @@ in **bold Portuguese** below, with the English meaning next to them.
 
 ## Requirements
 
-- **Windows 10 or 11, 64-bit.** macOS and Linux aren't supported yet (they're on the
+- **Windows 10 or 11, 64-bit.** Linux is [experimental](#linux-experimental); macOS isn't
+  supported yet (it's on the
   [roadmap](https://github.com/kyotodevIndie/teracota/blob/main/ROADMAP.md)).
 - **Claude Code** with plugin support (CLI or desktop app), for Tera to react to Claude.
   Without it, she still works as a desktop pet and through the [local API](/en/dev/api).
@@ -70,6 +71,36 @@ open sessions) copies it for you. Restarting the session works too.
 Claude can also make Tera speak and react on its own. To turn it on: menu → **Deixar o
 Claude Code falar pela Tera** (let Claude Code talk through Tera). See
 [Claude Code → Speech via MCP](./claude-code#speech-via-mcp-optional).
+
+## Linux (experimental)
+
+There's no Linux installer yet: you run it from source. It was tested on **Arch with
+Hyprland** (Wayland); other distros and desktops should work but haven't been validated.
+[Reports and help](/en/dev/contributing) are welcome.
+
+```bash
+git clone https://github.com/kyotodevIndie/teracota.git
+cd teracota
+npm install
+npm start
+```
+
+To build the packaged app: `npm run pack:linux` and run `release/linux-unpacked/teracota`
+(or `npm run dist:linux` for an AppImage).
+
+- **Wayland:** the compositor ignores the position a window asks for, so Tera relaunches
+  herself through XWayland to sit in the corner and wander.
+- **Tray:** needs StatusNotifier support (Waybar's tray has it). GNOME probably needs the
+  AppIndicator extension.
+- **Start with the system:** not available on Linux yet, so the menu item is hidden.
+- **Hyprland:** as a floating window she gets blur, border and shadow, and doesn't follow
+  you across workspaces. In `hyprland.conf`:
+  ```
+  windowrule = match:class ^teracota$, no_blur on
+  windowrule = match:class ^teracota$, no_shadow on
+  windowrule = match:class ^teracota$, border_size 0
+  windowrule = match:class ^teracota$, pin on
+  ```
 
 ## Updating
 

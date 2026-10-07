@@ -18,7 +18,7 @@ Local API: [Local API](./api).
 | Integration | Per-agent adapters (Claude Code: hooks via `curl`) + local API + optional MCP (`@modelcontextprotocol/sdk`) served by the app |
 | Tests | Vitest (pure logic, a real HTTP server, and the core with Electron mocked) |
 | Lint | Biome (linter only) |
-| Packaging | electron-builder (Windows NSIS installer) |
+| Packaging | electron-builder (Windows NSIS installer; AppImage on Linux, experimental) |
 | CI | GitHub Actions: `ci.yml` (checks), `release.yml` (tag → installer → draft release), `docs.yml` (this site) |
 
 ## Overview
@@ -32,6 +32,7 @@ Local API: [Local API](./api).
 ┌──────────── Main process (Electron main) ──────────────────┐
 │ server.ts        local HTTP, 127.0.0.1 only                │
 │ integrations/    adapters: native → AgentSignal            │
+│ platform/        what varies per OS/compositor             │
 │ manager.ts       Companion Core: sessions → which Tera     │
 │ sessions.ts      sessions keyed by provider:sessionId      │
 │ entity.ts        one Tera = BrowserWindow + Walker + IPC   │

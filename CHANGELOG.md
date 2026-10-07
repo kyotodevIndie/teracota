@@ -6,6 +6,15 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 
 ## [Não lançado]
 
+### Adicionado
+- **Linux (experimental):** a Tera roda no Arch com Hyprland. No Wayland o app se reabre
+  via XWayland pra conseguir ficar no canto e passear. Alvo AppImage (`npm run dist:linux`)
+
+### Alterado
+- O que depende de sistema operacional ficou isolado em `src/main/platform/`, com um
+  arquivo por sistema, pra facilitar suportar outras distros e SOs
+- O item "Abrir ao iniciar o sistema" não aparece onde não é suportado (Linux)
+
 ## [0.1.0] — 2026-10-01 (beta)
 
 Primeira versão pública: beta pra Windows.
