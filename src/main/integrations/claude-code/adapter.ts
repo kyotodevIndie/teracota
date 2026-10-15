@@ -30,7 +30,7 @@ const TOOL_STATES: Record<string, StateName> = {
 
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;
 
-function toolState(name = ''): StateName | null {
+export function toolState(name = ''): StateName | null {
   if (name.startsWith(MCP_TOOL_PREFIX)) return null; // o próprio MCP já controla a Tera
   if (TOOL_STATES[name]) return TOOL_STATES[name];
   if (/browser|chrome/i.test(name)) return 'web';

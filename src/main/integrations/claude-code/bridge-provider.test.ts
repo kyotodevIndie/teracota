@@ -123,7 +123,7 @@ describe('provider: sessão', () => {
       { type: 'session', sessionId: 'sess-1', cwdLabel: 'proj', model: 'claude-x' },
       { type: 'text-delta', text: 'Oi' },
       { type: 'text-delta', text: ' você' },
-      { type: 'tool', name: 'Bash', summary: 'ls' },
+      { type: 'tool', name: 'Bash', summary: 'ls', activity: 'terminal' },
       { type: 'message', role: 'assistant', text: 'Oi você' },
       { type: 'turn-end', outcome: 'done' },
     ]);
@@ -294,6 +294,72 @@ describe('provider: interrupt e close', () => {
       await vi.advanceTimersByTimeAsync(6000);
       await p;
       expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'cancelled' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('interrupt que nunca resolve e turno que não termina: resolve no timeout, cancela e a sessão fica morta', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      const s = await t.provider.start({ cwd: CWD }, t.sink);
+      await s.send('x');
+      t.fq.interrupt.mockImplementation(() => new Promise<void>(() => {}));
+      let done = false;
+      const p = s.interrupt().then(() => { done = true; });
+      await vi.advanceTimersByTimeAsync(4900);
+      expect(done).toBe(false);
+      await vi.advanceTimersByTimeAsync(200);
+      await p;
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'cancelled' });
+      expect(t.fq.close).toHaveBeenCalled();
+      await s.send('y');
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'error', message: 'A sessão do agente foi encerrada.' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('interrupt que nunca resolve mas o result chega: resolve antes do timeout e a sessão segue viva', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      const s = await t.provider.start({ cwd: CWD }, t.sink);
+      await s.send('x');
+      t.fq.interrupt.mockImplementation(() => new Promise<void>(() => {}));
+      let done = false;
+      const p = s.interrupt().then(() => { done = true; });
+      t.fq.push(result({ subtype: 'error_during_execution', is_error: true }));
+      await vi.advanceTimersByTimeAsync(100);
+      await p;
+      expect(done).toBe(true);
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'cancelled' });
+      expect(t.fq.close).not.toHaveBeenCalled();
+      await s.send('y');
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'cancelled' });
+      t.fq.push(result({ result: 'ok' }));
+      await vi.advanceTimersByTimeAsync(10);
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'done' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('interrupt que rejeita: resolve sem esperar o timeout e a sessão fica morta', async () => {
+    vi.useFakeTimers();
+    try {
+      const t = setup();
+      const s = await t.provider.start({ cwd: CWD }, t.sink);
+      await s.send('x');
+      t.fq.interrupt.mockImplementation(async () => { throw new Error('falhou'); });
+      const p = s.interrupt();
+      await vi.advanceTimersByTimeAsync(10);
+      await p;
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'cancelled' });
+      expect(t.fq.close).toHaveBeenCalled();
+      await s.send('y');
+      expect(t.events.at(-1)).toEqual({ type: 'turn-end', outcome: 'error', message: 'A sessão do agente foi encerrada.' });
     } finally {
       vi.useRealTimers();
     }

@@ -26,6 +26,10 @@ describe('registro de integrações', () => {
     expect(providerInfo('claude-code')).toMatchObject({ displayName: 'Claude Code', capabilities: { completion: true } });
   });
 
+  it('provider simulado do painel: conclusão garantida', () => {
+    expect(providerInfo('simulado').capabilities.completion).toBe(true);
+  });
+
   it('provider da comunidade: nome = id e sem garantia de conclusão', () => {
     expect(providerInfo('meu-agente')).toMatchObject({ displayName: 'meu-agente', capabilities: { sessions: true, completion: false } });
   });

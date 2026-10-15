@@ -15,6 +15,7 @@ import path from 'node:path';
 import type { Options, PermissionResult, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { ProviderEventBody, SessionSummary } from '../../../shared/bridge';
 import type { AgentProvider, ProviderSession, ProviderSink } from '../../bridge/types';
+import { toolState } from './adapter';
 
 export type QueryFn = (params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => Query;
 
@@ -165,19 +166,23 @@ class ClaudeSession implements ProviderSession {
     const ended = new Promise<void>((resolve) => { this.onTurnEnded = resolve; });
     let timer: ReturnType<typeof setTimeout> | undefined;
     let timedOut = false;
+    let failed = false;
     const timeout = new Promise<void>((resolve) => {
       timer = setTimeout(() => { timedOut = true; resolve(); }, INTERRUPT_WAIT_MS);
       timer.unref?.();
     });
+    // interrupt() que nunca resolve não trava: vale o que vier primeiro (fim do turno, timeout ou falha)
+    const failedP = new Promise<void>((resolve) => {
+      void this.q!.interrupt().catch(() => { failed = true; resolve(); });
+    });
     try {
-      await this.q.interrupt();
-      await Promise.race([ended, timeout]);
+      await Promise.race([ended, timeout, failedP]);
     } finally {
       clearTimeout(timer);
       this.onTurnEnded = null;
       if (this.running) this.endTurn({ type: 'turn-end', outcome: 'cancelled' });
       this.interrupting = false;
-      if (timedOut) {
+      if (timedOut || failed) {
         // o agente não parou: a sessão fica inutilizável
         this.dead = true;
         this.close();
@@ -271,7 +276,7 @@ class ClaudeSession implements ProviderSession {
         if (m.parent_tool_use_id) return true;
         const text = m.message.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
         for (const b of m.message.content) {
-          if (b.type === 'tool_use') this.sink({ type: 'tool', name: b.name, summary: toolSummary(b.input) });
+          if (b.type === 'tool_use') this.sink({ type: 'tool', name: b.name, summary: toolSummary(b.input), activity: toolState(b.name) ?? undefined });
         }
         if (text.trim()) {
           this.emittedText = true;
