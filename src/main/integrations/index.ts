@@ -1,9 +1,14 @@
 // Registro das integrações com agentes. Pra adicionar uma: crie a pasta do adapter,
 // implemente AgentAdapter e inclua aqui (veja docs/INTEGRACOES.md).
+import type { AgentProvider } from '../bridge/types';
 import { claudeCode } from './claude-code/adapter';
+import { createClaudeCodeProvider } from './claude-code/bridge-provider';
 import type { AgentAdapter, AgentCapabilities } from './types';
 
 export const ADAPTERS: readonly AgentAdapter[] = [claudeCode];
+
+/** Agentes que o painel de conversa (experimental) sabe dirigir */
+export const BRIDGE_PROVIDERS: readonly AgentProvider[] = [createClaudeCodeProvider()];
 
 /**
  * Integrações da comunidade via API local (`/api/v1/event` com `source`): sabemos
