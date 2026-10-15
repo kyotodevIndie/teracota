@@ -1,5 +1,6 @@
 // Painel de conversa (experimental): contrato entre o main e o renderer do painel.
 // Só tipos e nomes de canais — nada específico de um agente.
+import type { StateName } from './protocol';
 
 export interface ProviderDescriptor {
   id: string;
@@ -7,6 +8,8 @@ export interface ProviderDescriptor {
   available: boolean;
   /** Por que não está disponível (mostrado ao usuário) */
   reason?: string;
+  /** Provider de simulação (dev): nenhum agente real por trás */
+  simulated?: boolean;
 }
 
 export type BridgeState =
@@ -24,7 +27,7 @@ export type ProviderEventBody =
   | { type: 'session'; sessionId: string; cwdLabel: string; model: string }
   | { type: 'text-delta'; text: string }
   | { type: 'message'; role: 'user' | 'assistant'; text: string }
-  | { type: 'tool'; name: string; summary: string }
+  | { type: 'tool'; name: string; summary: string; activity?: StateName }
   | { type: 'permission-request'; id: string; toolName: string; detail: string; outsideCwd: boolean }
   | { type: 'permission-resolved'; id: string; allow: boolean }
   | { type: 'turn-end'; outcome: 'done' | 'error' | 'cancelled'; message?: string };

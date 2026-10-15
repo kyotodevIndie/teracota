@@ -16,6 +16,8 @@ export interface ProviderSession {
 export interface AgentProvider {
   readonly id: string;
   readonly displayName: string;
+  /** Provider de simulação (dev): sem agente real */
+  readonly simulated?: boolean;
   checkAvailability(): Promise<Pick<ProviderDescriptor, 'available' | 'reason'>>;
   listSessions(cwd: string): Promise<SessionSummary[]>;
   start(opts: { cwd: string; resumeId?: string }, sink: ProviderSink): Promise<ProviderSession>;

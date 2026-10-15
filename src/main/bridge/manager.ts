@@ -48,11 +48,12 @@ export class BridgeManager {
 
   async listProviders(): Promise<ProviderDescriptor[]> {
     return Promise.all(this.providers.map(async (p): Promise<ProviderDescriptor> => {
+      const sim = p.simulated ? { simulated: true } : {};
       try {
         const a = await p.checkAvailability();
-        return { id: p.id, displayName: p.displayName, available: a.available, ...(a.reason ? { reason: a.reason } : {}) };
+        return { id: p.id, displayName: p.displayName, available: a.available, ...(a.reason ? { reason: a.reason } : {}), ...sim };
       } catch {
-        return { id: p.id, displayName: p.displayName, available: false, reason: 'Não foi possível verificar a disponibilidade.' };
+        return { id: p.id, displayName: p.displayName, available: false, reason: 'Não foi possível verificar a disponibilidade.', ...sim };
       }
     }));
   }
@@ -155,6 +156,12 @@ export class BridgeManager {
 
   closeAll(): void {
     for (const handle of [...this.entries.keys()]) this.close(handle);
+  }
+
+  /** Origem de uma sessão aberta (só metadados, nunca conteúdo) */
+  describe(handle: string): { providerId: string; cwdLabel: string } | undefined {
+    const e = this.entries.get(handle);
+    return e ? { providerId: e.providerId, cwdLabel: e.cwdLabel } : undefined;
   }
 
   snapshot(): SessionSnapshot[] {

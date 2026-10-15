@@ -158,6 +158,24 @@ describe('BridgeManager', () => {
     expect(bridge.snapshot()[0]!.state).toBe('cancelled');
   });
 
+  it('interrupt que só retorna após o timeout do provider: interrupting volta a false e send funciona', async () => {
+    const { bridge, provider } = setup();
+    const h = await bridge.start('fake', { cwd: '/x' });
+    bridge.send(h, 'a');
+    provider.session.interrupt = () => new Promise<void>((r) => setTimeout(r, 20));
+    await bridge.interrupt(h);
+    expect(bridge.snapshot()[0]!.state).toBe('cancelled');
+    expect(() => bridge.send(h, 'b')).not.toThrow();
+    expect(bridge.snapshot()[0]!.state).toBe('running');
+  });
+
+  it('describe devolve só provider e rótulo da pasta', async () => {
+    const { bridge } = setup();
+    const h = await bridge.start('fake', { cwd: '/tmp/proj' });
+    expect(bridge.describe(h)).toEqual({ providerId: 'fake', cwdLabel: 'proj' });
+    expect(bridge.describe('nao-existe')).toBeUndefined();
+  });
+
   it('interrupt fora de turno é rejeitado', async () => {
     const { bridge } = setup();
     const h = await bridge.start('fake', { cwd: '/x' });
