@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
+  <title>Tera — conversa</title>
+  <link rel="stylesheet" href="panel.css" />
+</head>
+<body>
+  <header id="setup">
+    <div class="row">
+      <select id="provider" aria-label="Agente"></select>
+      <button id="pick" type="button">Escolher pasta…</button>
+    </div>
+    <div id="provider-reason" class="note" hidden></div>
+    <div id="folder" class="note" hidden></div>
+    <div id="sessions" hidden>
+      <select id="session-select" aria-label="Sessão para retomar"></select>
+      <button id="start" type="button">Iniciar</button>
+    </div>
+  </header>
+
+  <div id="statusbar" hidden>
+    <span id="dot"></span><span id="status-text"></span>
+    <span class="spacer"></span>
+    <button id="end" type="button">Encerrar sessão</button>
+  </div>
+
+  <div id="error" role="alert" hidden></div>
+  <main id="history" aria-live="polite"></main>
+
+  <section id="permission" hidden>
+    <strong>O agente pede permissão</strong>
+    <div id="perm-tool"></div>
+    <pre id="perm-detail"></pre>
+    <div id="perm-warn" hidden>Fora da pasta do projeto</div>
+    <div class="row">
+      <button id="allow" type="button">Permitir</button>
+      <button id="deny" type="button">Recusar</button>
+    </div>
+  </section>
+
+  <footer id="composer" hidden>
+    <textarea id="prompt" rows="3" maxlength="20000" placeholder="Escreva um prompt (Ctrl+Enter envia)"></textarea>
+    <div class="row">
+      <button id="send" type="button">Enviar</button>
+      <button id="stop" type="button" hidden>Interromper</button>
+      <span class="spacer"></span>
+      <button id="collapse" type="button">Recolher</button>
+    </div>
+  </footer>
+  <div id="collapse-only" class="row"><span class="spacer"></span><button id="collapse2" type="button">Recolher</button></div>
+  <script src="panel.js"></script>
+</body>
+</html>

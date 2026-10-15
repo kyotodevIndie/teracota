@@ -13,6 +13,7 @@ import { assetsDir } from './paths';
 import { startEventServer } from './server';
 import { loadSkin } from './skins';
 import { registerCompanionIpc } from './companion';
+import { initAgentPanel } from './panel';
 import { initUi } from './ui-mode';
 
 let manager: EntityManager;
@@ -62,6 +63,7 @@ if (!app.requestSingleInstanceLock()) {
     app.dock?.hide(); // macOS: vive na barra de menus, sem ícone no Dock
     manager = new EntityManager(loadConfig());
     manager.start();
+    initAgentPanel(); // experimental: só com TERACOTA_AGENT_PANEL=1 em desenvolvimento
     initUi(manager, () => buildMenu(manager));
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);

@@ -8,6 +8,7 @@ import type { Entity } from './entity';
 import { MAX_ENTITIES, type EntityManager } from './manager';
 import { listSkins, loadSkin } from './skins';
 import { getCompanion } from './companion';
+import { getAgentPanel } from './panel';
 import { SCENARIOS, runScenario, type Scenario } from './companion/simulator';
 import { setUiMode, uiMode } from './ui-mode';
 
@@ -29,6 +30,12 @@ function simulatorItems(): MenuItemConstructorOptions[] {
       click: () => runScenario(companion.controller, id),
     })),
   }];
+}
+
+/** Só com a flag do painel de conversa ligada (desenvolvimento) */
+function panelItems(): MenuItemConstructorOptions[] {
+  const panel = getAgentPanel();
+  return panel ? [{ label: 'Conversar (experimental)', click: () => panel.show() }, { type: 'separator' }] : [];
 }
 
 function skinItems(manager: EntityManager): MenuItemConstructorOptions[] {
@@ -92,6 +99,7 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
       },
     },
     { type: 'separator' },
+    ...panelItems(),
     ...connectItems(manager),
     {
       label: app.isPackaged ? STARTUP_LABEL : `${STARTUP_LABEL} (só no app instalado)`,
