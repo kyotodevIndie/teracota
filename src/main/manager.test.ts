@@ -255,3 +255,33 @@ describe('API local', () => {
     expect(FakeEntity.all[0]!.sessionId).toBeNull();
   });
 });
+
+describe('sessões do painel (Agent Bridge) e sessões externas', () => {
+  // o painel usa o id do provider real e o handle como sessionId; hooks externos usam o session_id do agente
+  const panel = (handle: string, extra: Partial<AgentSignal> = {}) => claude(handle, 'proj', extra);
+  const panelEnd: Partial<AgentSignal> = { lifecycle: 'end', working: false, event: { state: 'sleeping', working: false } };
+
+  it('coexistem como duas sessões e o fim da sessão do painel não encerra a externa', () => {
+    const m = start();
+    m.handleSignal(claude('hook-ext', 'api', { lifecycle: 'start' }));
+    m.handleSignal(panel('handle-1', { lifecycle: 'start' }));
+    m.handleSignal(panel('handle-1', panelEnd));
+    // a externa continua: a Tera só se despede da sessão do painel, sem dormir
+    expect(FakeEntity.all[0]!.last).toMatchObject({ say: 'Tchau! 👋', from: 'proj', working: true });
+    expect(FakeEntity.all[0]!.last?.state).toBeUndefined();
+    m.handleSignal(claude('hook-ext', 'api', { event: { state: 'reading', working: true } }));
+    expect(FakeEntity.all[0]!.last).toMatchObject({ state: 'reading', working: true });
+  });
+
+  it('modo multi: a sessão do painel ganha a sua Tera e a libera ao encerrar; a externa fica', () => {
+    const m = start({ entityMode: 'multi' });
+    m.handleSignal(claude('hook-ext', 'api', { lifecycle: 'start' }));
+    m.handleSignal(panel('handle-1', { lifecycle: 'start' }));
+    expect(FakeEntity.all).toHaveLength(2);
+    expect(FakeEntity.all[1]!.identity.label).toBe('proj');
+    m.handleSignal(panel('handle-1', panelEnd));
+    expect(FakeEntity.all[1]!.left).toBe(true);
+    expect(FakeEntity.all[0]!.left).toBe(false);
+    expect(FakeEntity.all[0]!.sessionId).not.toBeNull();
+  });
+});
