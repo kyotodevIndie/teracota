@@ -1,6 +1,123 @@
-# Teracota 2.0, Ciclo 1: Tera Agent Bridge (checkpoint)
+# Teracota 2.0: Tera Agent Bridge (checkpoint)
 
-> Data: 2026-10-15 · Branch: `feat/agent-bridge` (local, sem push) · Orquestração: `/route`
+> Branch: `feat/agent-bridge` (local, sem push) · Orquestração: `/route`
+> Ciclo 2 abaixo. O ciclo 1 vem depois, preservado como registro.
+
+# Ciclo 2: homologação visual, revisão de segurança e integração do mascote (2026-10-15)
+
+## C2.1 Estado inicial
+
+- HEAD `ebf5365` com árvore limpa. Só havia arquivos não rastreados de outros trabalhos (`LAUNCH_READINESS_REPORT.md`, `PROJECT_STATUS_REPORT.md`, `TERA_PHASE1_TASK.md`, `docs/TERA_RIG_AUDIT.md`, `poc/`).
+- 227 testes passando.
+- `ANTHROPIC_API_KEY` **ausente**: só a presença foi checada, sem ler o valor. O smoke real **nunca foi executado**.
+
+## C2.2 Arquitetura implementada
+
+```
+AgentProvider (claude-code real | "simulado" só em dev)
+   └─► BridgeManager ──(BridgeEvent)──► painel (IPC panel:event)
+                     └─► companion-link ──(AgentSignal)──► EntityManager.handleSignal ──► Tera
+                                                              ▲
+                                    hooks de sessões externas ┘ (inalterados)
+```
+
+- **`src/main/bridge/companion-link.ts`:** genérico, não conhece o provider. A fonte do sinal é `{provider: id do provider, sessionId: handle UUID, project: cwdLabel}`. O handle nunca colide com o `session_id` dos hooks, e os sinais **não carregam texto da conversa**. Mapeamento:
+
+  | Evento da sessão | Sinal para a Tera |
+  |---|---|
+  | Sessão iniciada | `lifecycle: start` + attention, "Sessão iniciada no painel." |
+  | Agente trabalhando | thinking ou a atividade da ferramenta; a tabela `toolState` é a mesma dos hooks |
+  | Aguardando permissão | attention, "Preciso da sua permissão no painel." |
+  | Resposta recebida | typing, uma vez por turno |
+  | Turno concluído | happy, "Pronto!" |
+  | Erro | error, "Hmm, deu erro." (sem a mensagem) |
+  | Interrompido | idle, "Interrompido." |
+  | Sessão encerrada | `lifecycle: end` + sleeping, "Até mais! 💤" |
+
+- **`src/main/bridge/simulated.ts`:** provider `simulado`, ativo só com `TERACOTA_AGENT_PANEL=1` + `TERACOTA_AGENT_PANEL_SIM=1` + `!app.isPackaged`.
+  - Todo texto sai rotulado `[simulado]`/`[SIMULAÇÃO]`, e o painel mostra o banner fixo "SIMULAÇÃO — nenhum agente real".
+  - Comandos: `/permissao`, `/erro`, `/lento`, `/desconectar`.
+  - Não executa nada, não ecoa nem loga o texto do usuário, e não é pré-selecionado se houver outro provider disponível.
+- **`src/main/panel/pick-folder.ts` (`resolvePickFolder`):** a pasta temporária vale só para o simulado com a simulação ligada. O provider real **sempre** passa pelo diálogo nativo. As pastas temporárias são removidas no `before-quit`.
+- Nada de hooks, CLAUDE.md ou settings: `settingSources: []` continua intacto.
+
+## C2.3 Achados e correções
+
+| # | Origem | Achado | Correção |
+|---|---|---|---|
+| P0-1 | reviewer | `interrupt()` aguardava `q.interrupt()` fora da corrida com o timeout; um interrupt travado bloqueava a sessão | `q.interrupt()` entra na corrida com o fim do turno, o timeout e a falha; timeout ou falha deixam a sessão `dead` e chamam `close()`. Testes (a), (b) e (c) |
+| P0 | reviewer | Os 5 ajustes do ciclo 1, `settingSources: []`, isolamento de permissões, encerramento e IPC | Aprovados |
+| P0 | reviewer | zod 3 → 4 | **Sem regressão**: só `mcp.ts` e `panel/ipc.ts` usam zod, com APIs compatíveis |
+| P0 | reviewer | MCP | Teste ad hoc com o servidor real (`mcp.ts` via esbuild + `StreamableHTTPClientTransport`): `inputSchema` correto, chamadas válidas ok, inválidas → `-32602` |
+| V1/V3/V6 | homologação real | "Encerrar sessão" visível sem sessão; dois "Recolher"; estado e erro antigos depois de Encerrar | Causa raiz: o `display` do CSS anulava `[hidden]`. Agora `[hidden]{display:none!important}` e o painel limpa o estado ao encerrar |
+| V8 | homologação real | Estado inicial vazio, sem orientação | Mensagem "Escolha um agente e uma pasta para começar." |
+| V5 | homologação real | O cartão de permissão não rolava o histórico | O histórico rola até o fim |
+| R-1/R-2 | reviewer | Pastas temporárias nunca removidas; regra do pickFolder sem teste | Remoção restrita ao prefixo em `os.tmpdir()`; `resolvePickFolder` com 3 testes |
+
+## C2.4 Evidências de testes (saída real)
+
+| Verificação | Resultado |
+|---|---|
+| `npm run typecheck` | ok |
+| `npm run lint` | 86 arquivos, sem achados |
+| `npx vitest run` | **22 arquivos, 260 testes passando** (eram 227) |
+| `node build.mjs` | ok |
+| Logs do app real | só `[bridge] <handle> <estado>`; um grep pelos prompts usados nos testes (`olá`, `/lento`, `/permissao`, `/erro`, `parte 1`) não achou nada |
+
+## C2.5 Homologação visual (Electron real, sem chamadas pagas)
+
+Lançamento: `TERACOTA_AGENT_PANEL=1 TERACOTA_AGENT_PANEL_SIM=1 TERACOTA_PORT=47999 npx electron . --remote-debugging-port=9333 --inspect=9334`. Dirigido por CDP: cliques via DOM, screenshots das janelas e `setSize`/`show()` pelo inspector do main. Screenshots em `reports/agent-bridge/shots/`. A tabela completa (real × automatizado × não homologado) está em `docs/dev/agent-bridge.md`.
+
+- **Visto no app real:**
+  - abertura;
+  - layout em 320×420 (mínimo), 400×600 e 720×900, sem overflow;
+  - pasta (simulado);
+  - estados vazios;
+  - Claude indisponível, com o motivo da chave;
+  - sessão simulada;
+  - streaming;
+  - Permitir/Recusar;
+  - Interromper;
+  - Recolher/reabrir, com o mesmo histórico e a mesma sessão, e o reload reidratando;
+  - fechar no X só esconde a janela;
+  - Encerrar;
+  - `/erro` e `/desconectar`, incluindo o envio depois de desconectar;
+  - Tera clássica reagindo (trabalhando/digitando, permissão, "Pronto!", "Hmm, deu erro.", "Até mais! 💤");
+  - remoção das pastas temporárias ao sair.
+- **Não homologado:**
+  - fluxo com o Claude real (sem autenticação oficial nem smoke);
+  - clique no item nativo "Conversar (experimental)" do menu/tray (a reabertura foi feita pelo mesmo `show()` via inspector);
+  - diálogo nativo de pasta;
+  - Mini Companion, que **não reage** às sessões do painel.
+- O perfil dev estava em modo `ui: mini`. A janela clássica da Tera ficou oculta, mas renderizando, e foi inspecionada assim.
+
+## C2.6 Limitações restantes
+
+1. **O fluxo com o Claude não está homologado.** Falta a `ANTHROPIC_API_KEY` própria do usuário, e o smoke não foi executado. O custo do ciclo foi **US$ 0**.
+2. O Mini Companion (experimental) não consome os sinais do painel.
+3. Na pose de erro a Tera fica neutra e só o balão indica o erro (a skin não tem expressão de erro distinta).
+4. Os commits por domínio não foram compilados um a um; só o estado final passou pelos gates.
+5. Quality Gate: a revisão arquitetural crítica pós-implementação **não foi feita** neste ciclo, por causa do limite de 6 delegações (a delegação reservada foi para a revalidação do reviewer, como pedido). O architect desenhou o plano, e o reviewer aprovou a entrega e a correção.
+
+## C2.7 Commits do ciclo 2
+
+Ver `git log --oneline ebf5365..HEAD`: `feat(bridge)` → `feat(integrations)` → `feat(mascote)` → `feat(panel)` → `docs`.
+
+## C2.8 Prompt do ciclo 3
+
+```
+TERACOTA 2.0, CICLO 3. Branch feat/agent-bridge. Leia reports/agent-bridge/CHECKPOINT.md (ciclo 2) e docs/dev/agent-bridge.md.
+P0: revisão arquitetural crítica do ciclo 2 (companion-link, simulado, pick-folder, interrupt). Ela ficou pendente por limite de delegações.
+P1: se o usuário fornecer ANTHROPIC_API_KEY no ambiente E autorizar explicitamente, rodar UMA vez o smoke (docs/dev/agent-bridge.md › Smoke futuro), informando o custo antes (teto US$ 0,05), e então homologar o painel com o Claude real. Sem chave: registrar o bloqueio e seguir.
+P2: Mini Companion consumir os mesmos AgentSignals (ou decidir descontinuá-lo); clique real no menu nativo e no diálogo de pasta (computer use ou teste manual guiado).
+P3: settingSources opt-in por projeto, com consentimento explícito na UI (sem reativar hooks por padrão).
+P4: só depois do P1, começar a planejar upload, screenshot e voz.
+Mesmas regras: /route (máx. 6 delegações), IPC validado, sem login da assinatura, sem push/PR/merge, commits locais por domínio, checkpoint atualizado.
+```
+
+---
+
+# Ciclo 1 (registro)
 
 ## 1. Estado inicial
 
