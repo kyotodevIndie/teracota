@@ -63,7 +63,7 @@ if (!app.requestSingleInstanceLock()) {
     app.dock?.hide(); // macOS: vive na barra de menus, sem ícone no Dock
     manager = new EntityManager(loadConfig());
     manager.start();
-    initAgentPanel(); // experimental: só com TERACOTA_AGENT_PANEL=1 em desenvolvimento
+    initAgentPanel({ onSignal: (s) => manager.handleSignal(s) }); // experimental: só com TERACOTA_AGENT_PANEL=1 em desenvolvimento
     initUi(manager, () => buildMenu(manager));
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);

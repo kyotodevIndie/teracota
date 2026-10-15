@@ -1,6 +1,9 @@
 :root { color-scheme: dark; font-family: system-ui, sans-serif; font-size: 13px; }
+/* biome-ignore lint/complexity/noImportantStyles: o atributo hidden precisa vencer os display declarados abaixo */
+[hidden] { display: none !important; }
 * { box-sizing: border-box; }
 body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: #1b1b22; color: #e8e8ee; }
+#sim-banner { background: #5b3b00; color: #ffd98a; font-weight: 700; text-align: center; padding: 5px 10px; letter-spacing: .04em; border-bottom: 1px solid #8a5a00; }
 header, #statusbar, #composer, #permission, #collapse-only { padding: 8px 10px; border-bottom: 1px solid #2d2d38; }
 #composer { border-top: 1px solid #2d2d38; border-bottom: 0; }
 .row { display: flex; gap: 6px; align-items: center; }
@@ -28,3 +31,4 @@ textarea { width: 100%; resize: none; margin-bottom: 6px; }
 #permission { background: #2c2a1c; }
 #perm-detail { margin: 6px 0; padding: 6px; background: #14141a; border-radius: 6px; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow: auto; }
 #perm-warn { color: #ffcf70; font-weight: 600; margin-bottom: 6px; }
+.empty { margin: auto; color: #8d8da0; text-align: center; padding: 16px; }

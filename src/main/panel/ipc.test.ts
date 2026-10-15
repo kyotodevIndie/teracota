@@ -85,6 +85,7 @@ describe('IPC do painel', () => {
     expect(r).toEqual({ ok: true, data: { cwdLabel: 'proj', sessions: [{ id: 'sess-1', title: 't', lastModified: 1 }] } });
     expect(JSON.stringify(r)).not.toContain('work');
     expect(t.bridge.listSessions).toHaveBeenCalledWith('p', '/work/proj');
+    expect(t.pickFolder).toHaveBeenCalledWith('p');
     const c = setup(null);
     expect(await c.call(PANEL_IPC.pickFolder, { providerId: 'p' })).toEqual({ ok: true, data: null });
   });

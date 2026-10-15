@@ -24,7 +24,7 @@ export interface PanelBridge {
 export interface PanelHandlerDeps {
   bridge: PanelBridge;
   /** Abre o seletor de pasta do sistema (consentimento do usuário); null = cancelou */
-  pickFolder(): Promise<string | null>;
+  pickFolder(providerId: string): Promise<string | null>;
   /** O remetente é a janela do painel? */
   isPanelSender(sender: unknown): boolean;
   hide(): void;
@@ -78,7 +78,7 @@ export function makePanelHandlers(deps: PanelHandlerDeps): Record<string, PanelH
     [PANEL_IPC.listProviders]: noInput(() => deps.bridge.listProviders()),
 
     [PANEL_IPC.pickFolder]: guarded(schemas.pickFolder, async (input): Promise<FolderPick | null> => {
-      const dir = await deps.pickFolder();
+      const dir = await deps.pickFolder(input.providerId);
       if (!dir) return null;
       selectedCwd = dir;
       const sessions = await deps.bridge.listSessions(input.providerId, dir);

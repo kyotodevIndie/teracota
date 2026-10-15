@@ -27,6 +27,7 @@ const promptEl = $<HTMLTextAreaElement>('prompt');
 const sendBtn = $<HTMLButtonElement>('send');
 const stopBtn = $<HTMLButtonElement>('stop');
 const collapseOnly = $('collapse-only');
+const simBanner = $('sim-banner');
 
 const STATUS: Record<BridgeState, { text: string; kind: 'idle' | 'busy' | 'done' | 'error' }> = {
   starting: { text: 'Iniciando…', kind: 'busy' },
@@ -44,6 +45,10 @@ let providers: ProviderDescriptor[] = [];
 let picked: FolderPick | null = null;
 let session: SessionSnapshot | null = null;
 let permissions: PendingPermission[] = [];
+const emptyEl = document.createElement('div');
+emptyEl.className = 'empty';
+emptyEl.textContent = 'Escolha um agente e uma pasta para começar.';
+
 let partialEl: HTMLElement | null = null;
 
 /** Resultado do IPC: erro vira faixa de erro */
@@ -64,6 +69,7 @@ function addMessage(role: HistoryEntry['role'], text: string): HTMLElement {
   const el = document.createElement('div');
   el.className = `msg ${role}`;
   el.textContent = text;
+  emptyEl.remove();
   historyEl.append(el);
   historyEl.scrollTop = historyEl.scrollHeight;
   return el;
@@ -78,15 +84,26 @@ function renderHistory(s: SessionSnapshot): void {
 
 // ---------- tela ----------
 
+/** Faixa fixa quando o provider (da sessão ativa ou do selecionado) é a simulação */
+function updateSimBanner(): void {
+  const id = session ? session.providerId : providerSel.value;
+  simBanner.hidden = !providers.find((p) => p.id === id)?.simulated;
+}
+
 function render(): void {
+  updateSimBanner();
   const active = session !== null;
   setupEl.hidden = active;
   statusbar.hidden = !active;
   composer.hidden = !active;
   collapseOnly.hidden = active;
   if (!active) {
-    historyEl.replaceChildren();
+    historyEl.replaceChildren(emptyEl);
+    partialEl = null;
     permEl.hidden = true;
+    showError(null);
+    statusText.textContent = '';
+    delete dot.dataset.kind;
     return;
   }
   const st = STATUS[session!.state];
@@ -106,9 +123,11 @@ function renderPermission(): void {
   $('perm-tool').textContent = p.toolName;
   $('perm-detail').textContent = p.detail;
   $('perm-warn').hidden = !p.outsideCwd;
+  historyEl.scrollTop = historyEl.scrollHeight;
 }
 
 function renderSetup(): void {
+  const previous = providerSel.value;
   providerSel.replaceChildren();
   for (const p of providers) {
     const o = document.createElement('option');
@@ -116,6 +135,10 @@ function renderSetup(): void {
     o.textContent = p.available ? p.displayName : `${p.displayName} (indisponível)`;
     providerSel.append(o);
   }
+  // mantém a escolha do usuário; no início, nunca pré-seleciona a simulação se houver outro agente disponível
+  const preferred = providers.find((p) => p.id === previous)
+    ?? providers.find((p) => p.available && !p.simulated) ?? providers.find((p) => p.available) ?? providers[0];
+  if (preferred) providerSel.value = preferred.id;
   updateProviderNote();
 }
 
@@ -124,6 +147,7 @@ function currentProvider(): ProviderDescriptor | undefined {
 }
 
 function updateProviderNote(): void {
+  updateSimBanner();
   const p = currentProvider();
   reasonEl.hidden = !p || p.available;
   reasonEl.textContent = p && !p.available ? (p.reason ?? 'Indisponível.') : '';

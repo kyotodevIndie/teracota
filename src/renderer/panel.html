@@ -7,49 +7,50 @@
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
+  <div id="sim-banner" data-testid="sim-banner" role="status" hidden>SIMULAÇÃO — nenhum agente real</div>
   <header id="setup">
     <div class="row">
-      <select id="provider" aria-label="Agente"></select>
-      <button id="pick" type="button">Escolher pasta…</button>
+      <select id="provider" data-testid="provider-select" aria-label="Agente"></select>
+      <button id="pick" data-testid="pick-folder" type="button">Escolher pasta…</button>
     </div>
     <div id="provider-reason" class="note" hidden></div>
     <div id="folder" class="note" hidden></div>
     <div id="sessions" hidden>
-      <select id="session-select" aria-label="Sessão para retomar"></select>
-      <button id="start" type="button">Iniciar</button>
+      <select id="session-select" data-testid="session-select" aria-label="Sessão para retomar"></select>
+      <button id="start" data-testid="new-session" type="button">Iniciar</button>
     </div>
   </header>
 
   <div id="statusbar" hidden>
-    <span id="dot"></span><span id="status-text"></span>
+    <span id="dot"></span><span id="status-text" data-testid="state"></span>
     <span class="spacer"></span>
-    <button id="end" type="button">Encerrar sessão</button>
+    <button id="end" data-testid="end-session" type="button">Encerrar sessão</button>
   </div>
 
-  <div id="error" role="alert" hidden></div>
-  <main id="history" aria-live="polite"></main>
+  <div id="error" data-testid="error" role="alert" hidden></div>
+  <main id="history" data-testid="history" aria-live="polite"></main>
 
-  <section id="permission" hidden>
+  <section id="permission" data-testid="permission" hidden>
     <strong>O agente pede permissão</strong>
     <div id="perm-tool"></div>
     <pre id="perm-detail"></pre>
     <div id="perm-warn" hidden>Fora da pasta do projeto</div>
     <div class="row">
-      <button id="allow" type="button">Permitir</button>
-      <button id="deny" type="button">Recusar</button>
+      <button id="allow" data-testid="allow" type="button">Permitir</button>
+      <button id="deny" data-testid="deny" type="button">Recusar</button>
     </div>
   </section>
 
   <footer id="composer" hidden>
-    <textarea id="prompt" rows="3" maxlength="20000" placeholder="Escreva um prompt (Ctrl+Enter envia)"></textarea>
+    <textarea id="prompt" data-testid="prompt" rows="3" maxlength="20000" placeholder="Escreva um prompt (Ctrl+Enter envia)"></textarea>
     <div class="row">
-      <button id="send" type="button">Enviar</button>
-      <button id="stop" type="button" hidden>Interromper</button>
+      <button id="send" data-testid="send" type="button">Enviar</button>
+      <button id="stop" data-testid="interrupt" type="button" hidden>Interromper</button>
       <span class="spacer"></span>
-      <button id="collapse" type="button">Recolher</button>
+      <button id="collapse" data-testid="collapse" type="button">Recolher</button>
     </div>
   </footer>
-  <div id="collapse-only" class="row"><span class="spacer"></span><button id="collapse2" type="button">Recolher</button></div>
+  <div id="collapse-only" class="row"><span class="spacer"></span><button id="collapse2" data-testid="collapse-idle" type="button">Recolher</button></div>
   <script src="panel.js"></script>
 </body>
 </html>
