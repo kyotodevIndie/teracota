@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+  <title>Tera Pocket</title>
+  <link rel="stylesheet" href="pocket.css">
+</head>
+<body>
+  <header>
+    <h1>Tera Pocket</h1>
+    <span id="status" class="muted"></span>
+    <button id="new-btn" class="primary" type="button">Nova tarefa</button>
+  </header>
+  <div id="banner" hidden></div>
+  <main>
+    <aside><ul id="list"></ul><p id="empty" class="muted" hidden>Nenhuma tarefa ainda.</p></aside>
+    <section id="detail"><p class="muted">Selecione uma tarefa ou crie uma nova.</p></section>
+  </main>
+  <script src="pocket.js"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@ import { ADAPTERS } from './integrations';
 import type { Entity } from './entity';
 import { MAX_ENTITIES, type EntityManager } from './manager';
 import { listSkins, loadSkin } from './skins';
+import { openPocketWindow } from './pocket/window';
 
 function skinItems(manager: EntityManager): MenuItemConstructorOptions[] {
   const current = loadSkin(manager.skinId)?.id ?? SVG_SKIN_ID;
@@ -59,6 +60,7 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
     { type: 'separator' },
     { label: 'Skin', submenu: skinItems(manager) },
     { label: 'Voltar pro canto', click: () => (entity ? entity.resetPosition() : manager.resetPositions()) },
+    { label: 'Tera Pocket (tarefas)…', click: () => openPocketWindow() },
     { type: 'separator' },
     ...connectItems(manager),
     {

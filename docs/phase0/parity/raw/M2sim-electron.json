@@ -1,0 +1,30 @@
+﻿{
+    "host":  "electron",
+    "cpuPct":  {
+                   "min":  3.072,
+                   "sd":  0.47,
+                   "p50":  3.36,
+                   "n":  3,
+                   "mean":  3.47,
+                   "p95":  3.92,
+                   "max":  3.984
+               },
+    "note":  "cursor em elipse (SetCursorPos a cada ~8 ms) sobre o sprite, sem botao; hover alterna",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "cpuPctOfOneCore":  3.072,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  2,
+                     "cpuPctOfOneCore":  3.359,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  3,
+                     "cpuPctOfOneCore":  3.984,
+                     "seconds":  60
+                 }
+             ]
+}

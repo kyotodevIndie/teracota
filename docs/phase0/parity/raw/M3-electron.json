@@ -1,0 +1,74 @@
+﻿{
+    "host":  "electron",
+    "warm":  {
+                 "min":  358,
+                 "sd":  24.66,
+                 "p50":  371,
+                 "n":  5,
+                 "mean":  379.8,
+                 "p95":  413.2,
+                 "max":  422
+             },
+    "note":  "frio = perfil novo (cache de arquivos do SO NAO limpo); quente = perfil reutilizado",
+    "cold":  {
+                 "min":  367,
+                 "sd":  91.41,
+                 "p50":  374,
+                 "n":  5,
+                 "mean":  417.6,
+                 "p95":  543.0,
+                 "max":  580
+             },
+    "runs":  [
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  395,
+                     "pagePerfNowMs":  175.8
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  372,
+                     "pagePerfNowMs":  160.6
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  374,
+                     "pagePerfNowMs":  167.8
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  580,
+                     "pagePerfNowMs":  331.7
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  367,
+                     "pagePerfNowMs":  165.3
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  371,
+                     "pagePerfNowMs":  165.2
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  358,
+                     "pagePerfNowMs":  158.4
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  370,
+                     "pagePerfNowMs":  166.5
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  422,
+                     "pagePerfNowMs":  213
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  378,
+                     "pagePerfNowMs":  167.7
+                 }
+             ]
+}

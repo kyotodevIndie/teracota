@@ -5,7 +5,7 @@ import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { watch as fsWatch } from 'node:fs';
 
 const watch = process.argv.includes('--watch');
-const STATIC = ['index.html', 'style.css'];
+const STATIC = ['index.html', 'style.css', 'pocket.html', 'pocket.css'];
 
 const common = { bundle: true, logLevel: 'info', sourcemap: 'linked' };
 const node = { ...common, platform: 'node', target: 'node22', packages: 'external' };
@@ -14,6 +14,8 @@ const builds = [
   { ...node, entryPoints: ['src/main/main.ts'], outfile: 'dist/main.js', format: 'cjs' },
   { ...node, entryPoints: ['src/preload/preload.ts'], outfile: 'dist/preload.js', format: 'cjs' },
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/app.ts'], outfile: 'dist/renderer/app.js', format: 'iife' },
+  { ...node, entryPoints: ['src/preload/pocket-preload.ts'], outfile: 'dist/pocket-preload.js', format: 'cjs' },
+  { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/pocket.ts'], outfile: 'dist/renderer/pocket.js', format: 'iife' },
   { ...node, entryPoints: ['scripts/demo.ts'], outfile: 'dist/scripts/demo.js', format: 'cjs' },
   { ...node, entryPoints: ['scripts/import-skin.ts'], outfile: 'dist/scripts/import-skin.js', format: 'cjs' },
 ];

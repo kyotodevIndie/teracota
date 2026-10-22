@@ -1,0 +1,40 @@
+✔ E: destructive action needs a separately written approval; wrong id refused; once only (794.7698ms)
+✔ E: approval is bound to taskId+step+action (same action in another step is not approved) (437.7297ms)
+✔ F: crash after effect, before confirmation; verifiable effect is NOT duplicated on explicit Continue (427.8194ms)
+✔ F: verifiable effect that did NOT land before crash is executed once on Continue (690.8882ms)
+✔ F: UNVERIFIABLE effect after crash -> needs_reconcile, never re-executed (even with Continue) (553.837ms)
+✔ F: real SIGKILL of a process between effect and confirmation (separate process) (442.9915ms)
+✔ test\helpers.mjs (89.4324ms)
+✔ H(1) user interrupt -> interrupted (not failed), lock released (1140.4747ms)
+✔ H(2) runner SIGKILLed -> needs_reconcile, not re-executed, evidence collected (921.9573ms)
+✔ D: orchestrator killed (kill -9) while running -> startup reconcile moves to needs_reconcile with evidence, no re-run (1876.1177ms)
+✔ D: reconcile skips a task whose lock is held by a live orchestrator (465.6412ms)
+H4 outputs: [{"pid":23080,"result":"refused","error":"LockBusyError","message":"lock busy: active"},{"pid":11292,"result":"started"}]
+✔ H(4) two orchestrator processes, same session: one refused (4643.0282ms)
+✔ H(5) explicit resume after reconcile: new run, new lock, same session transcript continues (924.4362ms)
+✔ G: auth_error / session_expired / usage_limited are distinct states with NO retry (1227.9259ms)
+✔ G: transient error retried with exponential backoff, max 3 retries, then failed (1171.1486ms)
+✔ G: transient error that clears after 2 failures -> completes (1316.1584ms)
+✔ H: live lock on session refuses start from same-process second orchestrator (672.6986ms)
+✔ C: every transition not in the table is refused (exhaustive) (5.1481ms)
+✔ C: journal refuses invalid transitions and keeps state intact (348.1724ms)
+✔ B: state derives from journal; truncated last line is ignored with warning, earlier lines survive (1857.4648ms)
+✔ B: appending after a torn line starts a clean line and the torn fragment stays ignored (198.6413ms)
+H3 child exit: {"code":1,"signal":null} lines: [{"pid":9880,"wrote":"partial"}]
+✔ H(3) orchestrator process SIGKILLed mid-transition: journal consistent, recovers (650.7429ms)
+A(a) results: [{"ok":false,"reason":"active"},{"ok":false,"reason":"active"},{"ok":false,"reason":"active"},{"ok":true},{"ok":false,"reason":"active"},{"ok":false,"reason":"active"}]
+✔ A(a) six concurrent processes, same lock: exactly one wins (6609.2232ms)
+✔ A(b) holder killed with SIGKILL: next one detects abandoned (pid_dead) and takes over (3058.3563ms)
+✔ A(c) reused PID (alive pid, different process creation time) is detected (68.5946ms)
+✔ A(d) active lock with recent heartbeat is refused and never removed (4036.5958ms)
+✔ heartbeat: rewritten atomically, stale (>30s) lock of a live pid is abandoned (386.4291ms)
+✔ lock lost to a takeover is noticed by the old holder at next heartbeat (113.8654ms)
+✔ regression: failed OS start-time lookup (null) must NOT be read as PID reuse (1.6138ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36435.9301

@@ -1,0 +1,74 @@
+﻿{
+    "host":  "tauri",
+    "warm":  {
+                 "min":  659.0,
+                 "sd":  6.24,
+                 "p50":  665.0,
+                 "n":  5,
+                 "mean":  666,
+                 "p95":  673.80,
+                 "max":  675.0
+             },
+    "note":  "frio = perfil novo (cache de arquivos do SO NAO limpo); quente = perfil reutilizado",
+    "cold":  {
+                 "min":  2809.0,
+                 "sd":  231.36,
+                 "p50":  2959.0,
+                 "n":  5,
+                 "mean":  3046.4,
+                 "p95":  3343.80,
+                 "max":  3388.0
+             },
+    "runs":  [
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  2959.0,
+                     "pagePerfNowMs":  2190.2
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  2809.0,
+                     "pagePerfNowMs":  2148.9
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  3388.0,
+                     "pagePerfNowMs":  2705.6
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  2909.0,
+                     "pagePerfNowMs":  2270.7
+                 },
+                 {
+                     "kind":  "cold",
+                     "startToFirstPaintMs":  3167.0,
+                     "pagePerfNowMs":  2403.7
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  662.0,
+                     "pagePerfNowMs":  107.2
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  675.0,
+                     "pagePerfNowMs":  117.9
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  659.0,
+                     "pagePerfNowMs":  100.8
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  669.0,
+                     "pagePerfNowMs":  104.3
+                 },
+                 {
+                     "kind":  "warm",
+                     "startToFirstPaintMs":  665.0,
+                     "pagePerfNowMs":  73.9
+                 }
+             ]
+}

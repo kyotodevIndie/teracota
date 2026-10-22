@@ -1,0 +1,9 @@
+{
+  "name": "runner-safety-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test --test-concurrency=1",
+    "crash": "node scripts/crash-scenarios.mjs"
+  }
+}

@@ -32,8 +32,11 @@
     "vitest": "^5.0.2"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.296",
+    "@anthropic-ai/sdk": "^0.133.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "^3.25.76"
+    "koffi": "^3.3.3",
+    "zod": "^4.6.5"
   },
   "productName": "Teracota",
   "build": {
@@ -46,7 +49,8 @@
       "dist/**/*",
       "!dist/**/*.map",
       "!dist/scripts/**",
-      "package.json"
+      "package.json",
+      "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
     "extraResources": [
       {

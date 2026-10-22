@@ -1,0 +1,60 @@
+﻿{
+    "privateMiB":  {
+                       "min":  188.2,
+                       "sd":  2.37,
+                       "p50":  191.1,
+                       "n":  3,
+                       "mean":  190.73,
+                       "p95":  192.72,
+                       "max":  192.9
+                   },
+    "host":  "electron",
+    "workingSetMiB":  {
+                          "min":  444.5,
+                          "sd":  1.21,
+                          "p50":  446,
+                          "n":  3,
+                          "mean":  445.8,
+                          "p95":  446.81,
+                          "max":  446.9
+                      },
+    "runs":  [
+                 {
+                     "run":  1,
+                     "windows":  3,
+                     "privateMiB":  192.9,
+                     "workingSetMiB":  446.9,
+                     "procs":  6,
+                     "cpuPctOfOneCore":  5.104,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  2,
+                     "windows":  3,
+                     "privateMiB":  191.1,
+                     "workingSetMiB":  446,
+                     "procs":  6,
+                     "cpuPctOfOneCore":  4.896,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  3,
+                     "windows":  3,
+                     "privateMiB":  188.2,
+                     "workingSetMiB":  444.5,
+                     "procs":  6,
+                     "cpuPctOfOneCore":  6.093,
+                     "seconds":  60
+                 }
+             ],
+    "cpuPct":  {
+                   "min":  4.896,
+                   "sd":  0.64,
+                   "p50":  5.1,
+                   "n":  3,
+                   "mean":  5.36,
+                   "p95":  5.99,
+                   "max":  6.093
+               },
+    "windows":  3
+}

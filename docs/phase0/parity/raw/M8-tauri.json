@@ -1,0 +1,11 @@
+﻿{
+    "host":  "tauri",
+    "api":  {
+                "contextMenuSet":  true,
+                "created":  true,
+                "handlers":  "on_tray_icon_event (TrayIconEvent: click esquerdo/direito/duplo) e on_menu_event registrados",
+                "note":  "verificacao por API; clique real na bandeja nao executado",
+                "rect":  "Some(Rect { position: Physical(PhysicalPosition { x: 1706, y: 1032 }), size: Physical(PhysicalSize { width: 32, height: 48 }) })"
+            },
+    "clickTest":  "NAO TESTADO: clique real no icone da bandeja nao e confiavel via automacao"
+}

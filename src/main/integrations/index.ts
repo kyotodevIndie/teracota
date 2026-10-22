@@ -30,3 +30,6 @@ export function providerInfo(provider: string): ProviderInfo {
     ? { displayName: adapter.displayName, capabilities: adapter.capabilities }
     : { displayName: provider, capabilities: COMMUNITY_CAPABILITIES };
 }
+
+// Tera Pocket: o runner do Claude Code vive aqui (regra: nada específico de agente fora de integrations/)
+export { ClaudeCodeRunner, loadClaudeSdk, type SdkApi } from './claude-code/pocket/claude-runner';

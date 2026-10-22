@@ -12,6 +12,7 @@ import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
 import { startEventServer } from './server';
 import { loadSkin } from './skins';
+import { openPocketWindow, pocketActive, shutdownPocket } from './pocket/window';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -63,6 +64,7 @@ if (!app.requestSingleInstanceLock()) {
     setTimeout(() => void offerConnection(manager), 5000);
     void refreshSpeech();
     createTray();
+    if (process.env.TERACOTA_POCKET_OPEN === '1') openPocketWindow(); // atalho de desenvolvimento/smoke
     startEventServer(getPort(), {
       onSignal: (signal) => manager.handleSignal(signal),
       onEvent: (incoming) => manager.handleEvent(incoming),
@@ -72,4 +74,14 @@ if (!app.requestSingleInstanceLock()) {
 
   // com a bandeja, esconder todas as janelas não fecha o app — só o "Sair"
   app.on('window-all-closed', () => { /* continua na bandeja */ });
+
+  // Tera Pocket: antes de sair, interrompe com limpeza e solta o lock (uma vez; depois deixa o app sair)
+  let pocketClosed = false;
+  app.on('before-quit', (e) => {
+    if (pocketClosed || !pocketActive()) return;
+    e.preventDefault();
+    pocketClosed = true;
+    // no máximo 5 s: se o runner travar, o app fecha mesmo assim (o Job Object e o próximo boot limpam o resto)
+    void Promise.race([shutdownPocket().catch(() => undefined), new Promise<void>((r) => setTimeout(r, 5000))]).finally(() => app.quit());
+  });
 }
