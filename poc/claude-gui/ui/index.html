@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'self'">
+<title>Teracota — POC Claude Code</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+  header, footer { padding: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #f3f0ee; }
+  #log { flex: 1; overflow: auto; padding: 8px 12px; }
+  .msg { margin: 6px 0; white-space: pre-wrap; }
+  .user { color: #1d4ed8; } .tool { color: #6b7280; font-family: monospace; font-size: 12px; }
+  .err { color: #b91c1c; } .file { color: #047857; font-family: monospace; font-size: 12px; }
+  .perm { border: 2px solid #b4532f; border-radius: 6px; padding: 8px; margin: 8px 0; background: #fff7f3; }
+  .perm pre { white-space: pre-wrap; max-height: 160px; overflow: auto; background: #fff; padding: 6px; }
+  #state { font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #ddd; }
+  #prompt { flex: 1; min-width: 200px; } .meta { color: #6b7280; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <button id="pick">Escolher projeto…</button>
+  <span id="dir" class="meta">nenhum projeto</span>
+  <select id="sessions"><option value="">(nova sessão)</option></select>
+  <select id="model"><option value="">modelo padrão</option><option value="haiku">haiku</option><option value="sonnet">sonnet</option><option value="opus">opus</option></select>
+  <button id="open" disabled>Abrir sessão</button>
+  <span id="state">sem sessão</span>
+</header>
+<div id="log"></div>
+<footer>
+  <input id="image" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+  <input id="prompt" placeholder="Mensagem pro Claude Code…" disabled>
+  <button id="send" disabled>Enviar</button>
+  <button id="stop" disabled>Interromper</button>
+</footer>
+<script src="renderer.js"></script>
+</body>
+</html>
