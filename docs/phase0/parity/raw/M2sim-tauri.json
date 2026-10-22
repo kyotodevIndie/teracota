@@ -1,0 +1,30 @@
+﻿{
+    "host":  "tauri",
+    "cpuPct":  {
+                   "min":  6.275,
+                   "sd":  0.58,
+                   "p50":  6.3,
+                   "n":  3,
+                   "mean":  6.62,
+                   "p95":  7.19,
+                   "max":  7.291
+               },
+    "note":  "cursor em elipse (SetCursorPos a cada ~8 ms) sobre o sprite, sem botao; hover alterna",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "cpuPctOfOneCore":  7.291,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  2,
+                     "cpuPctOfOneCore":  6.301,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  3,
+                     "cpuPctOfOneCore":  6.275,
+                     "seconds":  60
+                 }
+             ]
+}

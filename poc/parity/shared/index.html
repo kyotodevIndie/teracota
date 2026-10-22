@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+html,body{margin:0;padding:0;background:transparent;overflow:hidden;width:320px;height:440px}
+canvas{position:absolute;left:0;top:0}
+/* area arrastavel = sprite 260x260 em (30,170) e retangulo de teste 40x40 em (4,4) */
+#dragSprite{position:absolute;left:30px;top:170px;width:260px;height:260px}
+#dragRect{position:absolute;left:4px;top:4px;width:40px;height:40px}
+</style></head>
+<body>
+<canvas id="c" width="320" height="440"></canvas>
+<div id="dragSprite" data-tauri-drag-region></div>
+<div id="dragRect" data-tauri-drag-region></div>
+<script src="app.js"></script>
+</body></html>

@@ -1,0 +1,60 @@
+﻿{
+    "privateMiB":  {
+                       "min":  133.8,
+                       "sd":  0.32,
+                       "p50":  134.3,
+                       "n":  3,
+                       "mean":  134.17,
+                       "p95":  134.39,
+                       "max":  134.4
+                   },
+    "host":  "tauri",
+    "workingSetMiB":  {
+                          "min":  340.3,
+                          "sd":  0.98,
+                          "p50":  340.8,
+                          "n":  3,
+                          "mean":  341.1,
+                          "p95":  342.06,
+                          "max":  342.2
+                      },
+    "runs":  [
+                 {
+                     "run":  1,
+                     "windows":  1,
+                     "privateMiB":  134.4,
+                     "workingSetMiB":  342.2,
+                     "procs":  7,
+                     "cpuPctOfOneCore":  5.781,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  2,
+                     "windows":  1,
+                     "privateMiB":  133.8,
+                     "workingSetMiB":  340.3,
+                     "procs":  7,
+                     "cpuPctOfOneCore":  5.547,
+                     "seconds":  60
+                 },
+                 {
+                     "run":  3,
+                     "windows":  1,
+                     "privateMiB":  134.3,
+                     "workingSetMiB":  340.8,
+                     "procs":  7,
+                     "cpuPctOfOneCore":  5.181,
+                     "seconds":  60
+                 }
+             ],
+    "cpuPct":  {
+                   "min":  5.181,
+                   "sd":  0.3,
+                   "p50":  5.55,
+                   "n":  3,
+                   "mean":  5.5,
+                   "p95":  5.76,
+                   "max":  5.781
+               },
+    "windows":  1
+}

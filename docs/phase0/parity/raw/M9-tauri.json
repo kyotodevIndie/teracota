@@ -1,0 +1,96 @@
+﻿{
+    "host":  "tauri",
+    "displays":  [
+                     {
+                         "h":  1080,
+                         "scale":  1.0,
+                         "w":  1920,
+                         "x":  0,
+                         "y":  0
+                     },
+                     {
+                         "h":  1440,
+                         "scale":  1.0,
+                         "w":  2560,
+                         "x":  -2560,
+                         "y":  -355
+                     }
+                 ],
+    "rows":  [
+                 {
+                     "target":  "primario",
+                     "requestedX":  600,
+                     "requestedY":  200,
+                     "actualX":  600,
+                     "actualY":  200,
+                     "actualW":  320,
+                     "actualH":  440,
+                     "hostReportedX":  600,
+                     "hostReportedY":  200,
+                     "hostScale":  1.0,
+                     "rectCaptures":  true,
+                     "emptyPassesThrough":  true,
+                     "positionExact":  true
+                 },
+                 {
+                     "target":  "secundario",
+                     "requestedX":  -2200,
+                     "requestedY":  100,
+                     "actualX":  -2200,
+                     "actualY":  100,
+                     "actualW":  320,
+                     "actualH":  440,
+                     "hostReportedX":  -2200,
+                     "hostReportedY":  100,
+                     "hostScale":  1.0,
+                     "rectCaptures":  true,
+                     "emptyPassesThrough":  true,
+                     "positionExact":  true
+                 },
+                 {
+                     "target":  "secundario_y_negativo",
+                     "requestedX":  -2200,
+                     "requestedY":  -300,
+                     "actualX":  -2200,
+                     "actualY":  -300,
+                     "actualW":  320,
+                     "actualH":  440,
+                     "hostReportedX":  -2200,
+                     "hostReportedY":  -300,
+                     "hostScale":  1.0,
+                     "rectCaptures":  true,
+                     "emptyPassesThrough":  true,
+                     "positionExact":  true
+                 },
+                 {
+                     "target":  "a_cavalo_dos_monitores",
+                     "requestedX":  -160,
+                     "requestedY":  100,
+                     "actualX":  -160,
+                     "actualY":  100,
+                     "actualW":  320,
+                     "actualH":  440,
+                     "hostReportedX":  -160,
+                     "hostReportedY":  100,
+                     "hostScale":  1.0,
+                     "rectCaptures":  true,
+                     "emptyPassesThrough":  true,
+                     "positionExact":  true
+                 },
+                 {
+                     "target":  "primario_de_volta",
+                     "requestedX":  600,
+                     "requestedY":  200,
+                     "actualX":  600,
+                     "actualY":  200,
+                     "actualW":  320,
+                     "actualH":  440,
+                     "hostReportedX":  600,
+                     "hostReportedY":  200,
+                     "hostScale":  1.0,
+                     "rectCaptures":  true,
+                     "emptyPassesThrough":  true,
+                     "positionExact":  true
+                 }
+             ]
+}

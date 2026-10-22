@@ -1,0 +1,9 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "tera-parity-tauri",
+  "version": "0.0.1",
+  "identifier": "dev.teracota.poc.parity",
+  "build": { "frontendDist": "../shared" },
+  "app": { "withGlobalTauri": true, "windows": [], "security": { "csp": null } },
+  "bundle": { "active": false, "icon": ["icons/icon.ico"] }
+}

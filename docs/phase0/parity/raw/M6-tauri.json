@@ -1,0 +1,110 @@
+﻿{
+    "host":  "tauri",
+    "runs":  [
+                 {
+                     "run":  1,
+                     "hostVisibleAfterShow":  true,
+                     "before":  {
+                                    "hwnd":  394548,
+                                    "pid":  14216,
+                                    "title":  "Claude"
+                                },
+                     "after500ms":  {
+                                        "hwnd":  394548,
+                                        "pid":  14216,
+                                        "title":  "Claude"
+                                    },
+                     "after2500ms":  {
+                                         "hwnd":  394548,
+                                         "pid":  14216,
+                                         "title":  "Claude"
+                                     },
+                     "foregroundChanged":  false,
+                     "foregroundIsHost":  false
+                 },
+                 {
+                     "run":  2,
+                     "hostVisibleAfterShow":  true,
+                     "before":  {
+                                    "hwnd":  394548,
+                                    "pid":  14216,
+                                    "title":  "Claude"
+                                },
+                     "after500ms":  {
+                                        "hwnd":  394548,
+                                        "pid":  14216,
+                                        "title":  "Claude"
+                                    },
+                     "after2500ms":  {
+                                         "hwnd":  394548,
+                                         "pid":  14216,
+                                         "title":  "Claude"
+                                     },
+                     "foregroundChanged":  false,
+                     "foregroundIsHost":  false
+                 },
+                 {
+                     "run":  3,
+                     "hostVisibleAfterShow":  true,
+                     "before":  {
+                                    "hwnd":  394548,
+                                    "pid":  14216,
+                                    "title":  "Claude"
+                                },
+                     "after500ms":  {
+                                        "hwnd":  394548,
+                                        "pid":  14216,
+                                        "title":  "Claude"
+                                    },
+                     "after2500ms":  {
+                                         "hwnd":  394548,
+                                         "pid":  14216,
+                                         "title":  "Claude"
+                                     },
+                     "foregroundChanged":  false,
+                     "foregroundIsHost":  false
+                 },
+                 {
+                     "run":  4,
+                     "hostVisibleAfterShow":  true,
+                     "before":  {
+                                    "hwnd":  394548,
+                                    "pid":  14216,
+                                    "title":  "Claude"
+                                },
+                     "after500ms":  {
+                                        "hwnd":  394548,
+                                        "pid":  14216,
+                                        "title":  "Claude"
+                                    },
+                     "after2500ms":  {
+                                         "hwnd":  394548,
+                                         "pid":  14216,
+                                         "title":  "Claude"
+                                     },
+                     "foregroundChanged":  false,
+                     "foregroundIsHost":  false
+                 },
+                 {
+                     "run":  5,
+                     "hostVisibleAfterShow":  true,
+                     "before":  {
+                                    "hwnd":  394548,
+                                    "pid":  14216,
+                                    "title":  "Claude"
+                                },
+                     "after500ms":  {
+                                        "hwnd":  394548,
+                                        "pid":  14216,
+                                        "title":  "Claude"
+                                    },
+                     "after2500ms":  {
+                                         "hwnd":  394548,
+                                         "pid":  14216,
+                                         "title":  "Claude"
+                                     },
+                     "foregroundChanged":  false,
+                     "foregroundIsHost":  false
+                 }
+             ]
+}

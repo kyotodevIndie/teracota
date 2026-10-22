@@ -1,0 +1,17 @@
+﻿{
+    "host":  "electron",
+    "api":  {
+                "created":  true,
+                "boundsDip":  {
+                                  "x":  1706,
+                                  "y":  1032,
+                                  "width":  32,
+                                  "height":  48
+                              },
+                "listenersClick":  1,
+                "listenersRightClick":  1,
+                "contextMenuSet":  true,
+                "note":  "verificacao por API; clique real na bandeja nao executado"
+            },
+    "clickTest":  "NAO TESTADO: clique real no icone da bandeja nao e confiavel via automacao"
+}
