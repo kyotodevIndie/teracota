@@ -1,0 +1,26 @@
+{
+  "canvas": 512,
+  "feet": [256, 488],
+  "layers": [
+    { "id": "body",   "image": "parts/body.png",   "parent": null,     "pivot": [75, 170], "at": [256, 404], "z": 20 },
+    { "id": "leg_l",  "image": "parts/leg_l.png",  "parent": "body",   "pivot": [22, 6],   "at": [50, 160],  "z": 10 },
+    { "id": "leg_r",  "image": "parts/leg_r.png",  "parent": "body",   "pivot": [22, 6],   "at": [100, 160], "z": 10 },
+    { "id": "shoe_l", "image": "parts/shoe_l.png", "parent": "leg_l",  "pivot": [28, 6],   "at": [20, 80],   "z": 12 },
+    { "id": "shoe_r", "image": "parts/shoe_r.png", "parent": "leg_r",  "pivot": [28, 6],   "at": [24, 80],   "z": 12 },
+    { "id": "arm_l",  "image": "parts/arm_l.png",  "parent": "body",   "pivot": [20, 12],  "at": [12, 26],   "z": 25, "rotation": 12 },
+    { "id": "arm_r",  "image": "parts/arm_r.png",  "parent": "body",   "pivot": [20, 12],  "at": [138, 26],  "z": 25, "rotation": -12 },
+    { "id": "hand_l", "image": "parts/hand_l.png", "parent": "arm_l",  "pivot": [17, 6],   "at": [20, 108],  "z": 26 },
+    { "id": "hand_r", "image": "parts/hand_r.png", "parent": "arm_r",  "pivot": [17, 6],   "at": [20, 108],  "z": 26 },
+    { "id": "head",   "image": "parts/head.png",   "parent": "body",   "pivot": [105, 178], "at": [75, 18],  "z": 40, "limits": { "rotation": [-10, 10] } },
+    { "id": "face",   "image": "parts/face.png",   "parent": "head",   "pivot": [75, 56],  "at": [105, 112], "z": 41 },
+    { "id": "ear_l",  "image": "parts/ear_l.png",  "parent": "head",   "pivot": [32, 70],  "at": [46, 48],   "z": 35, "rotation": -18 },
+    { "id": "ear_r",  "image": "parts/ear_r.png",  "parent": "head",   "pivot": [32, 70],  "at": [164, 48],  "z": 35, "rotation": 18 },
+    { "id": "tail_1", "image": "parts/tail_1.png", "parent": "body",   "pivot": [15, 8],   "at": [128, 150], "z": 5, "rotation": -110, "limits": { "rotation": [-35, 35] } },
+    { "id": "tail_2", "image": "parts/tail_2.png", "parent": "tail_1", "pivot": [14, 6],   "at": [15, 72],   "z": 4, "rotation": 25,   "limits": { "rotation": [-35, 35] } },
+    { "id": "tail_3", "image": "parts/tail_3.png", "parent": "tail_2", "pivot": [13, 6],   "at": [14, 68],   "z": 3, "rotation": 30,   "limits": { "rotation": [-35, 35] } }
+  ],
+  "controllers": {
+    "breathe": { "layer": "body", "period": 2600, "amount": 0.015 },
+    "sway": { "layers": ["tail_1", "tail_2", "tail_3"], "amplitude": 18, "period": 2400 }
+  }
+}

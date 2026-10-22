@@ -16,11 +16,17 @@ const builds = [
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/app.ts'], outfile: 'dist/renderer/app.js', format: 'iife' },
   { ...node, entryPoints: ['scripts/demo.ts'], outfile: 'dist/scripts/demo.js', format: 'cjs' },
   { ...node, entryPoints: ['scripts/import-skin.ts'], outfile: 'dist/scripts/import-skin.js', format: 'cjs' },
+  // só desenvolvimento (dist/scripts fica fora do instalador): rig experimental
+  { ...node, entryPoints: ['scripts/make-rig-placeholders.ts'], outfile: 'dist/scripts/make-rig-placeholders.js', format: 'cjs' },
+  { ...node, entryPoints: ['scripts/rig-inspect/server.ts'], outfile: 'dist/scripts/rig-inspect-server.js', format: 'cjs' },
+  { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['scripts/rig-inspect/inspect.ts'], outfile: 'dist/scripts/rig-inspect/inspect.js', format: 'iife' },
 ];
 
 async function copyStatic() {
   await mkdir('dist/renderer', { recursive: true });
   await Promise.all(STATIC.map((f) => copyFile(`src/renderer/${f}`, `dist/renderer/${f}`)));
+  await mkdir('dist/scripts/rig-inspect', { recursive: true });
+  await copyFile('scripts/rig-inspect/index.html', 'dist/scripts/rig-inspect/index.html');
 }
 
 if (!watch) await rm('dist', { recursive: true, force: true });

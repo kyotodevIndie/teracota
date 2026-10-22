@@ -53,3 +53,29 @@ describe('parseSkinManifest', () => {
     expect(skin?.animations.drag?.swing).toBeUndefined();
   });
 });
+
+describe('parseSkinManifest — rig (experimental)', () => {
+  it('aceita type "rig" com o caminho do rig.json, sem exigir animações', () => {
+    const skin = parseSkinManifest({ name: 'Tera (rig)', type: 'rig', rig: 'rig.json' });
+    expect(skin).toMatchObject({ name: 'Tera (rig)', type: 'rig', rig: 'rig.json', animations: {} });
+  });
+
+  it('recusa rig sem caminho ou com caminho inseguro', () => {
+    expect(parseSkinManifest({ type: 'rig' })).toBeNull();
+    expect(parseSkinManifest({ type: 'rig', rig: '../fora.json' })).toBeNull();
+    expect(parseSkinManifest({ type: 'rig', rig: 'rig.png' })).toBeNull();
+  });
+
+  it('skin sem "type" continua sendo de sprites (as skins atuais não mudam)', () => {
+    const skin = parseSkinManifest({ animations: { idle: { frames: ['a.png'] } } });
+    expect(skin?.type).toBeUndefined();
+    expect(skin?.rig).toBeUndefined();
+  });
+});
+
+it('a skin original da Tera (fallback do rig) continua válida', async () => {
+  const fs = await import('node:fs');
+  const skin = parseSkinManifest(JSON.parse(fs.readFileSync('assets/skins/tera/skin.json', 'utf8')));
+  expect(skin?.type).toBeUndefined();
+  expect(Object.keys(skin!.animations)).toHaveLength(13);
+});

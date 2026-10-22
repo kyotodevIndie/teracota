@@ -11,7 +11,7 @@ import { buildMenu } from './menu';
 import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
 import { startEventServer } from './server';
-import { loadSkin } from './skins';
+import { loadFallbackSkin, loadSkin } from './skins';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -31,6 +31,7 @@ onEntity<[boolean]>(IPC.walkAllowed, (entity, allowed) => entity.setWalkAllowed(
 onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window: entity.win }));
 onEntity(IPC.clicked, () => onTeraClicked(manager));
 ipcMain.handle(IPC.getSkin, () => loadSkin(manager?.skinId));
+ipcMain.handle(IPC.getFallbackSkin, () => loadFallbackSkin());
 
 function createTray(): void {
   // tray@2x.png ao lado é usado automaticamente em telas com escala alta

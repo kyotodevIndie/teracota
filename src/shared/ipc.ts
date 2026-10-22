@@ -15,6 +15,7 @@ export const IPC = {
   dragEnd: 'teracota:drag-end',
   walkAllowed: 'teracota:walk-allowed',
   getSkin: 'teracota:get-skin',
+  getFallbackSkin: 'teracota:get-fallback-skin',
   clicked: 'teracota:clicked',
 } as const;
 
@@ -50,6 +51,8 @@ export interface Point {
 export interface CompanionApi {
   /** Skin atual (null = personagem SVG) */
   getSkin(): Promise<SkinInfo | null>;
+  /** A skin original da Tera, pra quando a skin atual falha no renderer (ex.: rig) */
+  getFallbackSkin(): Promise<SkinInfo | null>;
   onEvent(cb: (event: CompanionEvent) => void): void;
   onWalk(cb: (info: WalkInfo) => void): void;
   /** Posição do cursor relativa à janela */
