@@ -178,4 +178,17 @@ export class SvgCharacter implements Character {
     };
     window.setTimeout(blink, 2000);
   }
+
+  setReducedMotion(reduced: boolean): void {
+    // as animações do SVG são CSS: a classe desliga todas (style.css)
+    document.body.classList.toggle('reduced-motion', reduced);
+  }
+
+  targetFps(): number {
+    return 0; // o SVG anima por CSS; o relógio só move a janela
+  }
+
+  tick(_now: number): void {
+    // nada: o navegador anima o SVG sozinho
+  }
 }

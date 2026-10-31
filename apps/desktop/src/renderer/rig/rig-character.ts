@@ -1,21 +1,26 @@
-// Personagem de rig 2D (experimental): camadas articuladas em Canvas 2D.
+// Personagem de rig 2D (o renderer padrão): camadas articuladas em Canvas 2D.
 // Implementa a mesma interface `Character` das sprites e do SVG, então o resto do app
 // (estados, passeio, arrastar, balão, clique) não muda.
 //
-// Nesta etapa: respiração, cauda em cadeia e o movimento do corpo inteiro que as
-// sprites já usam (wobble.ts + pêndulo do arrasto). Poses, expressões, piscada e olhar
-// ficam pra quando houver arte definitiva — por enquanto todas as poses usam a base.
+// O RigAnimator (@tera/character/animator) decide, a cada quadro, o ajuste e a variante
+// de cada camada (pose com transição suave, expressão, piscada, boca, olhar, passos);
+// aqui fica só o que depende do DOM: o canvas, o movimento do corpo inteiro (wobble.ts +
+// pêndulo do arrasto) e o teste de clique.
 import type { Point } from '../../shared/ipc';
+import { RigAnimator, type RigMotion } from '@tera/character/animator';
 import { type Mat, apply, invert, localMatrix, multiply } from '@tera/character/rig';
-import type { SkinInfo } from '@tera/character/skin';
+import { RigScene } from '@tera/character/scene';
+import type { Pose, SkinInfo } from '@tera/character/skin';
 import type { Character, Motion } from '../character';
 import type { Look } from '../look';
-import { wobbleFor } from '../wobble';
-import { ChainSway, breathe, mergeOffsets } from '@tera/character/controllers';
-import { RigScene } from '@tera/character/scene';
+import { WobbleMixer } from '../wobble';
 
 /** Ponto por onde ela é segurada ao ser arrastada (fração da altura), igual às sprites */
 const GRIP_Y = 0.04;
+/** Quanto tempo a pose de aterrissagem dura depois de soltar */
+const LAND_MS = 380;
+/** Distância (px de tela) em que o olhar chega ao máximo */
+const GAZE_REACH = 360;
 
 export interface RigStats {
   frames: number;
@@ -29,28 +34,30 @@ export class RigCharacter implements Character {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly propEl: HTMLElement;
-  private readonly sway: ChainSway | null;
+  private readonly animator: RigAnimator;
+  private readonly wobble = new WobbleMixer();
   private look: Look = { pose: 'idle', expression: 'neutral', anim: null };
   private motion: Motion = null;
   private dir: 1 | -1 = 1;
   private swing = 0;
   private lastSwing = 0;
-  private poseStartedAt = performance.now();
+  private talking = false;
+  private reduced = false;
+  private gaze: [number, number] | null = null;
+  private landUntil = 0;
   /** px do canvas → px do rig, da última pose desenhada (pro hitTest) */
   private inverseRoot: Mat | null = null;
-  private lastDraw = 0;
-  private running = true;
   debug = false;
   private readonly stat = { frames: 0, total: 0, max: 0 };
 
-  /** Carrega e valida tudo antes do primeiro quadro; rejeita se alguma camada falhar */
+  /** Carrega e valida tudo (todas as variantes) antes do primeiro quadro; rejeita se alguma camada falhar */
   static async create(root: HTMLElement, skin: SkinInfo): Promise<RigCharacter> {
     if (!skin.rig) throw new Error(`skin "${skin.id}" não é um rig`);
     const size = skin.manifest.size;
     const dpr = window.devicePixelRatio || 1;
     const scene = await RigScene.load(skin.rig, skin.baseUrl, (size * dpr) / skin.rig.canvas);
     const character = new RigCharacter(root, skin, scene);
-    character.render();
+    character.tick(performance.now());
     return character;
   }
 
@@ -64,22 +71,23 @@ export class RigCharacter implements Character {
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = this.canvas.height = Math.round(size * dpr);
     this.ctx = this.canvas.getContext('2d')!;
-    this.sway = scene.rig.controllers.sway ? new ChainSway(scene.rig.controllers.sway) : null;
+    this.animator = new RigAnimator(scene.rig, Math.random, performance.now());
   }
 
   show(look: Look): void {
-    if (look.pose !== this.look.pose) this.poseStartedAt = performance.now();
     this.look = look;
   }
 
   setMotion(motion: Motion, dir: 1 | -1): void {
-    if (motion !== this.motion) this.poseStartedAt = performance.now();
+    if (this.motion === 'drag' && motion === null) this.landUntil = performance.now() + LAND_MS;
+    if (motion) this.landUntil = 0; // pegou de novo no meio da aterrissagem
+    if (motion === 'walk') this.gaze = null; // andando olha pra frente
     this.motion = motion;
     this.dir = dir;
   }
 
-  setTalking(_talking: boolean): void {
-    // sem boca separada nas camadas provisórias
+  setTalking(talking: boolean): void {
+    this.talking = talking;
   }
 
   setSwing(angle: number): void {
@@ -90,11 +98,22 @@ export class RigCharacter implements Character {
     this.propEl.textContent = text;
   }
 
-  lookAt(_p: Point | null): void {
-    // olhar o cursor fica pra próxima etapa (cabeça + íris)
+  setReducedMotion(reduced: boolean): void {
+    this.reduced = reduced;
   }
 
-  /** Clique só onde há pixel opaco de alguma camada, já com rotação/escala/pivô aplicados */
+  /** Olha pro cursor: direção a partir da cabeça, normalizada pela distância */
+  lookAt(p: Point | null): void {
+    if (!p) {
+      this.gaze = null;
+      return;
+    }
+    const r = this.canvas.getBoundingClientRect();
+    const head = { x: r.left + r.width / 2, y: r.top + r.height * 0.32 };
+    this.gaze = [(p.x - head.x) / GAZE_REACH, (p.y - head.y) / GAZE_REACH];
+  }
+
+  /** Clique só onde há pixel opaco de alguma camada visível, já com rotação/escala/pivô aplicados */
   hitTest(x: number, y: number): boolean {
     if (!this.inverseRoot) return false;
     const r = this.canvas.getBoundingClientRect();
@@ -122,46 +141,36 @@ export class RigCharacter implements Character {
     this.stat.frames = this.stat.total = this.stat.max = 0;
   }
 
-  destroy(): void {
-    this.running = false;
+  /** Mesmo critério das sprites: fluido em movimento, econômico parada */
+  targetFps(): number {
+    if (this.motion || performance.now() < this.landUntil) return Number.POSITIVE_INFINITY;
+    if (this.reduced) return 12; // piscada e boca ainda precisam de quadros
+    if (this.look.pose === 'sleep') return 15;
+    return 30;
   }
 
   // ---------- desenho ----------
 
-  private poseForMotion() {
-    if (this.motion === 'walk') return 'walk' as const;
-    if (this.motion === 'drag') return 'drag' as const;
+  private currentPose(now: number): Pose {
+    if (this.motion === 'walk') return 'walk';
+    if (this.motion === 'drag') return 'drag';
+    if (now < this.landUntil) return 'land';
     return this.look.pose;
   }
 
-  /** Mesmo critério das sprites: fluido em movimento, econômico parada */
-  private targetFps(): number {
-    if (this.motion) return 60;
-    if (this.look.pose === 'sleep') return 15;
-    return 24;
-  }
-
-  private render = (now: number = performance.now()): void => {
-    if (!this.running) return;
-    requestAnimationFrame(this.render);
-    if (now - this.lastDraw < 1000 / this.targetFps() - 2) return;
-    this.lastDraw = now;
-    this.drawFrame(now);
-  };
-
-  /** Desenha um quadro (o laço chama no ritmo do fps; a inspeção chama direto pra medir) */
-  drawFrame(now: number = performance.now()): void {
+  /** Desenha um quadro (o relógio da janela chama; a inspeção chama direto pra medir) */
+  tick(now: number): void {
     const t0 = performance.now();
-
     const rig = this.scene.rig;
-    const pose = this.poseForMotion();
-    const wob = wobbleFor(pose, now - this.poseStartedAt, this.dir);
-    // o balanço do arrasto vem da física (positivo = pés pra direita → horário negativo)
-    if (this.motion === 'drag') wob.rot -= this.swing;
-    const facing = this.skin.manifest.facing === 'right' ? 1 : -1;
-    const flip = this.motion === 'walk' && this.dir !== facing ? -1 : 1;
+    const pose = this.currentPose(now);
 
     // corpo inteiro: movimento procedural em px do rig, ancorado nos pés (ou na pega ao arrastar)
+    this.wobble.set(pose, now);
+    const wob = this.wobble.get(now, this.dir, this.reduced);
+    // o balanço do arrasto vem da física (positivo = pés pra direita → horário negativo)
+    if (this.motion === 'drag' && !this.reduced) wob.rot -= this.swing;
+    const facing = this.skin.manifest.facing === 'right' ? 1 : -1;
+    const flip = this.motion === 'walk' && this.dir !== facing ? -1 : 1;
     const toRig = rig.canvas / this.skin.manifest.size; // px de tela → px do rig
     const pivot: [number, number] = [rig.feet[0], pose === 'drag' ? rig.canvas * GRIP_Y : rig.feet[1]];
     const body = localMatrix([pivot[0] + wob.dx * toRig, pivot[1] + wob.dy * toRig], wob.rot, wob.sx * flip, wob.sy, pivot);
@@ -172,16 +181,22 @@ export class RigCharacter implements Character {
     // a cauda "fica pra trás" quando o corpo balança
     const swingVelocity = this.swing - this.lastSwing;
     this.lastSwing = this.swing;
-    const drive = this.motion === 'drag' ? swingVelocity * 6 : this.motion === 'walk' ? -10 * this.dir : 0;
-    const offsets = mergeOffsets(
-      rig.controllers.breathe ? breathe(rig.controllers.breathe, now) : {},
-      this.sway ? this.sway.step(now, drive) : {},
-    );
+    const frame = this.animator.frame(now, {
+      pose,
+      expression: this.look.expression,
+      talking: this.talking,
+      motion: this.motion as RigMotion,
+      dir: this.dir,
+      // virada pra esquerda, o "pra frente" do olhar inverte junto com o desenho
+      gaze: this.gaze && [this.gaze[0] * flip, this.gaze[1]],
+      drive: this.motion === 'drag' ? swingVelocity * 6 : 0,
+      reducedMotion: this.reduced,
+    });
 
     const ctx = this.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.scene.draw(ctx, root, offsets, this.debug);
+    this.scene.draw(ctx, root, frame.offsets, frame, this.debug);
 
     const ms = performance.now() - t0;
     this.stat.frames++;
@@ -189,4 +204,3 @@ export class RigCharacter implements Character {
     this.stat.max = Math.max(this.stat.max, ms);
   }
 }
-

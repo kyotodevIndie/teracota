@@ -8,7 +8,8 @@
     "./rig": "./src/rig.ts",
     "./skin": "./src/skin.ts",
     "./scene": "./src/scene.ts",
-    "./controllers": "./src/controllers.ts"
+    "./controllers": "./src/controllers.ts",
+    "./animator": "./src/animator.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

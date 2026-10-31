@@ -28,6 +28,10 @@ function onEntity<A extends unknown[]>(channel: string, fn: (entity: Entity, ...
 onEntity<[boolean]>(IPC.setIgnoreMouse, (entity, ignore) => entity.setIgnoreMouse(ignore));
 onEntity<[number, number]>(IPC.moveBy, (entity, dx, dy) => entity.moveBy(dx, dy));
 onEntity(IPC.dragEnd, (entity) => entity.settle());
+onEntity<[number, number]>(IPC.walkTo, (entity, x, y) => {
+  if (Number.isFinite(x) && Number.isFinite(y)) entity.walkTo({ x, y });
+});
+onEntity(IPC.walkArrived, (entity) => entity.walkArrived());
 onEntity<[boolean]>(IPC.walkAllowed, (entity, allowed) => entity.setWalkAllowed(allowed));
 onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window: entity.win }));
 onEntity(IPC.clicked, () => onTeraClicked(manager));

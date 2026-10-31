@@ -1,12 +1,12 @@
 // Personagem feito de sprites (skin). Desenha os frames num <canvas> e troca de
 // animação conforme o visual pedido, o movimento (andar/arrastar) e a fala.
-// Os frames trocam no tempo da skin; o desenho roda a cada quadro da tela pra
-// aplicar o movimento procedural (wobble.ts) por cima.
+// Os frames trocam no tempo da skin; o desenho segue o relógio da janela pra aplicar o
+// movimento procedural (wobble.ts) por cima. É o fallback do rig.
 import type { Point } from '../shared/ipc';
 import { HIT_MASK_SIZE, type Pose, type SkinInfo, type SkinSwing } from '@tera/character/skin';
 import type { Character, Motion } from './character';
 import type { Look } from './look';
-import { FEET_Y, wobbleFor } from './wobble';
+import { FEET_Y, WobbleMixer } from './wobble';
 
 /** Se a skin não tiver a pose, usa esta no lugar */
 const FALLBACK: Record<Pose, Pose> = {
@@ -38,13 +38,14 @@ export class SpriteCharacter implements Character {
   private swing = 0;
   private playing: Playing | null = null;
   private timer: number | undefined;
+  private reduced = false;
+  private readonly wobble = new WobbleMixer();
 
   /** Cria e já espera todas as imagens carregarem (evita piscar na primeira troca) */
   static async create(root: HTMLElement, skin: SkinInfo): Promise<SpriteCharacter> {
     const character = new SpriteCharacter(root, skin);
     await character.preload();
     character.refresh();
-    character.render();
     return character;
   }
 
@@ -89,6 +90,10 @@ export class SpriteCharacter implements Character {
 
   lookAt(_p: Point | null): void {
     // sprites não têm olhos independentes
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.reduced = reduced;
   }
 
   hitTest(x: number, y: number): boolean {
@@ -178,32 +183,29 @@ export class SpriteCharacter implements Character {
   }
 
   /** Quadros por segundo do desenho: fluido quando está se movendo, econômico quando parada */
-  private targetFps(): number {
-    if (this.motion) return 60;
+  targetFps(): number {
+    if (this.motion) return Number.POSITIVE_INFINITY;
+    if (this.reduced) return 12;
     if (this.playing?.pose === 'sleep') return 15;
-    return 24;
+    return 30;
   }
 
-  private lastDraw = 0;
-
   /** Desenha o frame atual + escala da animação + movimento procedural */
-  private render = (now: number = performance.now()): void => {
-    requestAnimationFrame(this.render);
-    if (now - this.lastDraw < 1000 / this.targetFps() - 2) return;
-    this.lastDraw = now;
+  tick(now: number): void {
     const p = this.playing;
     const anim = p && this.skin.manifest.animations[p.pose];
     if (!p || !anim) return;
     const dragged = this.motion === 'drag';
     // sem mapeamento de frames na skin, o balanço é só rotação (positivo no canvas = pés pra esquerda)
-    const swingRot = !dragged ? 0 : anim.swing ? this.applySwing(p, anim.swing) : -this.swing;
+    const swingRot = !dragged || this.reduced ? 0 : anim.swing ? this.applySwing(p, anim.swing) : -this.swing;
     const img = this.frames[p.pose]?.[p.frame];
     if (!img) return;
 
     const { width: w, height: h } = this.canvas;
     const px = w / this.skin.manifest.size; // px de tela → px do canvas
     const scale = anim.scale ?? 1;
-    const wob = wobbleFor(dragged ? 'drag' : p.pose, performance.now() - p.startedAt, this.dir);
+    this.wobble.set(dragged ? 'drag' : p.pose, now);
+    const wob = this.wobble.get(now, this.dir, this.reduced);
     wob.rot += swingRot;
     const pivotX = w / 2;
     const pivotY = h * wob.pivotY;
@@ -221,7 +223,7 @@ export class SpriteCharacter implements Character {
     ctx.scale(scale, scale);
     ctx.translate(-pivotX, -feetY);
     ctx.drawImage(img, 0, 0, w, h);
-  };
+  }
 
   /**
    * Escolhe o frame pelo balanço (inclinado pra um lado, centro, outro lado) e

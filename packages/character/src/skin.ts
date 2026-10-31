@@ -34,7 +34,7 @@ export interface SkinSwing {
 
 export interface SkinManifest {
   name: string;
-  /** sprites (padrão, frames por pose) ou rig (camadas articuladas, experimental) */
+  /** sprites (frames por pose) ou rig (camadas articuladas, o padrão da Tera) */
   type?: 'sprites' | 'rig';
   /** Só pra type "rig": caminho do rig.json, relativo à pasta da skin */
   rig?: string;
@@ -60,8 +60,11 @@ export interface SkinInfo {
   rig?: RigManifest;
 }
 
-/** A skin original da Tera: é ela o fallback quando outra skin (ex.: o rig) falha */
+/** A skin de sprites da Tera: é ela o fallback quando o rig falha */
 export const ORIGINAL_SKIN_ID = 'tera';
+
+/** O rig 2D da Tera: o renderer padrão */
+export const DEFAULT_SKIN_ID = 'tera-rig';
 
 /** Id reservado pro personagem desenhado em SVG (sem sprites) */
 export const SVG_SKIN_ID = 'svg';

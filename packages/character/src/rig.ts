@@ -10,8 +10,16 @@
 
 export interface RigLayer {
   id: string;
-  /** PNG relativo à pasta da skin */
+  /** PNG relativo à pasta da skin (a variante "default") */
   image: string;
+  /**
+   * Imagens alternativas da mesma camada, por nome (ex.: olhos "closed", boca "open").
+   * Devem ter o tamanho da imagem padrão: `pivot` e o `at` dos filhos usam esse espaço.
+   * Sempre inclui "default" → `image`.
+   */
+  variants: Record<string, string>;
+  /** false = começa escondida (uma pose ou expressão pode mostrar) */
+  visible: boolean;
   /** null = raiz */
   parent: string | null;
   /** Ponto de rotação, em px da imagem */
@@ -44,13 +52,79 @@ export interface SwayController {
   period: number;
 }
 
+/** Piscada: troca a variante de uma camada (os olhos) por alguns ms, de tempos em tempos */
+export interface BlinkController {
+  layer: string;
+  /** Variante dos olhos abertos (só pisca quando é ela que está aparecendo) */
+  open: string;
+  closed: string;
+  /** Intervalo entre piscadas, em ms [mín, máx] */
+  interval: [number, number];
+  /** Quanto tempo o olho fica fechado, em ms */
+  duration: number;
+}
+
+/** Olhar: desloca uma camada (íris/olhos) na direção do ponto e, opcionalmente, gira a cabeça */
+export interface GazeController {
+  layer: string;
+  /** Deslocamento máximo em px da imagem do pai [x, y] */
+  max: [number, number];
+  head?: string;
+  /** Rotação máxima da cabeça, em graus */
+  headMax: number;
+}
+
+/** Fala: alterna variantes da boca enquanto o balão está "digitando" */
+export interface TalkController {
+  layer: string;
+  variants: string[];
+  /** ms por variante */
+  period: number;
+}
+
+/** Caminhada: pernas (e braços, em oposição) balançam num ciclo de dois passos */
+export interface WalkController {
+  legs: [string, string];
+  arms?: [string, string];
+  /** Ângulo máximo das pernas, em graus */
+  swing: number;
+  /** Duração de um ciclo (dois passos), em ms */
+  period: number;
+}
+
+/** Ajuste de uma camada numa pose (somado ao repouso; a transição até ele é suave) */
+export interface PoseLayer {
+  rotation?: number;
+  dx?: number;
+  dy?: number;
+  scaleX?: number;
+  scaleY?: number;
+  variant?: string;
+  visible?: boolean;
+}
+
+export interface RigPose {
+  layers: Record<string, PoseLayer>;
+}
+
 export interface RigManifest {
   /** Lado do canvas do rig, em px (as coordenadas de `at` da raiz usam esse espaço) */
   canvas: number;
   /** Ponto dos pés, em px do canvas: âncora do movimento procedural do corpo inteiro */
   feet: [number, number];
   layers: RigLayer[];
-  controllers: { breathe?: BreatheController; sway?: SwayController };
+  /** Poses (idle, walk, work, sleep...): ajustes por camada. Pose ausente = repouso */
+  poses: Record<string, RigPose>;
+  /** Expressões (happy, focused...): variante por camada, por cima da pose */
+  expressions: Record<string, Record<string, string>>;
+  controllers: {
+    breathe?: BreatheController;
+    sway?: SwayController;
+    blink?: BlinkController;
+    gaze?: GazeController;
+    talk?: TalkController;
+    walk?: WalkController;
+  };
 }
 
 export const MAX_LAYERS = 64;
@@ -92,6 +166,14 @@ export function parseRigManifest(input: unknown): RigParseResult {
     if (ids.has(l.id)) { err('id repetido'); continue; }
     ids.add(l.id);
     if (!isSafeImagePath(l.image)) { err('"image" deve ser um .png relativo à pasta da skin'); continue; }
+    const variants: Record<string, string> = { default: l.image };
+    if (l.variants !== undefined) {
+      if (!l.variants || typeof l.variants !== 'object' || Array.isArray(l.variants)) { err('"variants" deve ser um objeto { nome: "arquivo.png" }'); continue; }
+      const bad = Object.entries(l.variants as Record<string, unknown>).find(([k, v]) => !ID.test(k) || k === 'default' || !isSafeImagePath(v));
+      if (bad) { err(`variante "${bad[0]}" inválida (nome com letras, números, _ e -; arquivo .png relativo; "default" é a "image")`); continue; }
+      Object.assign(variants, l.variants);
+    }
+    if (l.visible !== undefined && typeof l.visible !== 'boolean') { err('"visible" deve ser true ou false'); continue; }
     if (l.parent !== null && l.parent !== undefined && typeof l.parent !== 'string') { err('"parent" deve ser um id ou null'); continue; }
     if (!isPair(l.pivot)) { err('"pivot" deve ser [x, y]'); continue; }
     if (!isPair(l.at)) { err('"at" deve ser [x, y]'); continue; }
@@ -108,7 +190,7 @@ export function parseRigManifest(input: unknown): RigParseResult {
       limits = { rotation: lim.rotation };
     }
     layers.push({
-      id: l.id, image: l.image, parent: (l.parent as string | null | undefined) ?? null,
+      id: l.id, image: l.image, variants, visible: l.visible !== false, parent: (l.parent as string | null | undefined) ?? null,
       pivot: l.pivot, at: l.at, z, rotation, scale, ...(limits && { limits }),
     });
   }
@@ -147,8 +229,76 @@ export function parseRigManifest(input: unknown): RigParseResult {
     }
   }
 
+  const layerVariant = (id: string, v: unknown) => typeof v === 'string' && !!byId.get(id)?.variants[v];
+  const layerOf = (v: unknown) => (typeof v === 'string' ? byId.get(v) : undefined);
+
+  if (c.blink !== undefined) {
+    const b = (c.blink ?? {}) as Record<string, unknown>;
+    const layer = layerOf(b.layer);
+    const open = b.open === undefined ? 'default' : b.open;
+    const interval = isPair(b.interval) && b.interval[0] > 0 && b.interval[0] <= b.interval[1] ? b.interval : ([2500, 6000] as [number, number]);
+    if (!layer || !layerVariant(layer.id, b.closed) || !layerVariant(layer.id, open)) errors.push('controllers.blink: "layer" existente e "closed"/"open" variantes dela');
+    else controllers.blink = { layer: layer.id, open: open as string, closed: b.closed as string, interval, duration: clamp(isNum(b.duration) ? b.duration : 130, 40, 1000) };
+  }
+  if (c.gaze !== undefined) {
+    const g = (c.gaze ?? {}) as Record<string, unknown>;
+    const layer = layerOf(g.layer);
+    const head = g.head === undefined ? undefined : layerOf(g.head);
+    if (!layer || !isPair(g.max) || (g.head !== undefined && !head)) errors.push('controllers.gaze: "layer" (e "head", se houver) existentes e "max" = [x, y]');
+    else controllers.gaze = { layer: layer.id, max: [Math.abs(g.max[0]), Math.abs(g.max[1])], ...(head && { head: head.id }), headMax: clamp(isNum(g.headMax) ? g.headMax : 4, 0, 30) };
+  }
+  if (c.talk !== undefined) {
+    const t = (c.talk ?? {}) as Record<string, unknown>;
+    const layer = layerOf(t.layer);
+    const list = Array.isArray(t.variants) ? t.variants : null;
+    if (!layer || !list || list.length < 2 || !list.every((v) => layerVariant(layer.id, v))) errors.push('controllers.talk: "layer" existente e "variants" com pelo menos 2 variantes dela');
+    else controllers.talk = { layer: layer.id, variants: list as string[], period: clamp(isNum(t.period) ? t.period : 110, 40, 1000) };
+  }
+  if (c.walk !== undefined) {
+    const w = (c.walk ?? {}) as Record<string, unknown>;
+    const pair = (v: unknown) => Array.isArray(v) && v.length === 2 && v.every((id) => typeof id === 'string' && byId.has(id));
+    if (!pair(w.legs) || (w.arms !== undefined && !pair(w.arms))) errors.push('controllers.walk: "legs" (e "arms", se houver) = [esquerda, direita] existentes');
+    else controllers.walk = { legs: w.legs as [string, string], ...(w.arms !== undefined && { arms: w.arms as [string, string] }), swing: clamp(isNum(w.swing) ? w.swing : 22, 0, 80), period: positive(w.period, 560) };
+  }
+
+  const poses: RigManifest['poses'] = {};
+  if (o.poses !== undefined) {
+    if (!o.poses || typeof o.poses !== 'object') errors.push('"poses" deve ser um objeto { pose: { layers: {...} } }');
+    else for (const [name, raw] of Object.entries(o.poses as Record<string, unknown>)) {
+      const pl = ((raw ?? {}) as Record<string, unknown>).layers;
+      if (!ID.test(name) || !pl || typeof pl !== 'object') { errors.push(`pose "${name}": precisa de "layers"`); continue; }
+      const out: Record<string, PoseLayer> = {};
+      for (const [id, adj] of Object.entries(pl as Record<string, unknown>)) {
+        const a = (adj ?? {}) as Record<string, unknown>;
+        const fail = (msg: string) => errors.push(`pose "${name}", camada "${id}": ${msg}`);
+        if (!byId.has(id)) { fail('camada não existe'); continue; }
+        const nums = ['rotation', 'dx', 'dy', 'scaleX', 'scaleY'] as const;
+        if (nums.some((k) => a[k] !== undefined && !isNum(a[k]))) { fail('rotation/dx/dy/scaleX/scaleY devem ser números'); continue; }
+        if (a.variant !== undefined && !layerVariant(id, a.variant)) { fail(`variante "${String(a.variant)}" não existe`); continue; }
+        if (a.visible !== undefined && typeof a.visible !== 'boolean') { fail('"visible" deve ser true ou false'); continue; }
+        const entry: PoseLayer = {};
+        for (const k of nums) if (a[k] !== undefined) entry[k] = a[k] as number;
+        if (a.variant !== undefined) entry.variant = a.variant as string;
+        if (a.visible !== undefined) entry.visible = a.visible as boolean;
+        out[id] = entry;
+      }
+      poses[name] = { layers: out };
+    }
+  }
+
+  const expressions: RigManifest['expressions'] = {};
+  if (o.expressions !== undefined) {
+    if (!o.expressions || typeof o.expressions !== 'object') errors.push('"expressions" deve ser um objeto { expressão: { camada: variante } }');
+    else for (const [name, raw] of Object.entries(o.expressions as Record<string, unknown>)) {
+      if (!ID.test(name) || !raw || typeof raw !== 'object') { errors.push(`expressão "${name}" inválida`); continue; }
+      const bad = Object.entries(raw as Record<string, unknown>).find(([id, v]) => !layerVariant(id, v));
+      if (bad) { errors.push(`expressão "${name}": camada "${bad[0]}" sem a variante "${String(bad[1])}"`); continue; }
+      expressions[name] = raw as Record<string, string>;
+    }
+  }
+
   if (errors.length || canvas === null || feet === null) return { errors };
-  return { rig: { canvas, feet, layers, controllers } };
+  return { rig: { canvas, feet, layers, poses, expressions, controllers } };
 }
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));

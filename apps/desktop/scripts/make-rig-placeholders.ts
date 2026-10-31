@@ -1,5 +1,6 @@
-// Gera as camadas PROVISÓRIAS do rig de teste (formas geométricas com hachura),
-// em dev/skins/tera-rig/parts/. Não usa nem altera a arte original da Tera.
+// Gera as camadas PROVISÓRIAS do rig (formas geométricas com hachura), em
+// assets/skins/tera-rig/parts/ na raiz do monorepo. Servem pra desenvolver e testar o
+// motor (poses, expressões, piscada, boca); NÃO são a arte final da Tera.
 //   node build.mjs && node dist/scripts/make-rig-placeholders.js
 //
 // Sem dependências: rasteriza as formas com supersampling e grava PNG com o zlib do Node.
@@ -8,7 +9,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 type Rgb = [number, number, number];
-type Shape = 'rounded' | 'ellipse' | 'triangle';
+type Shape = 'rounded' | 'ellipse' | 'triangle' | 'ink';
 
 interface Part {
   file: string;
@@ -18,9 +19,29 @@ interface Part {
   fill: Rgb;
   /** raio dos cantos (rounded) */
   radius?: number;
-  /** olhos e boca desenhados como pontos (só no rosto) */
-  face?: boolean;
+  /** shape 'ink': só traço escuro onde a função diz (olhos, boca); o resto é transparente */
+  ink?: (x: number, y: number, w: number, h: number) => boolean;
 }
+
+// ---------- olhos e boca (variantes) ----------
+
+const EYE_X = [0.27, 0.73];
+const dot = (r: number) => (x: number, y: number, w: number, h: number) => EYE_X.some((cx) => Math.hypot(x - w * cx, y - h / 2) < r);
+/** arco de circunferência (traço) centrado em (cx, cy); up = parte de cima do círculo */
+const arc = (x: number, y: number, cx: number, cy: number, r: number, up: boolean, t = 2) =>
+  Math.abs(Math.hypot(x - cx, y - cy) - r) < t && (up ? y < cy : y > cy);
+const EYES = {
+  'eyes.png': dot(9),
+  'eyes_wide.png': dot(12),
+  'eyes_closed.png': (x: number, y: number, w: number, h: number) => EYE_X.some((cx) => Math.abs(x - w * cx) < 10 && Math.abs(y - h / 2) < 2),
+  'eyes_happy.png': (x: number, y: number, w: number, h: number) => EYE_X.some((cx) => arc(x, y, w * cx, h * 0.62, 9, true)),
+};
+const MOUTHS = {
+  'mouth.png': (x: number, y: number, w: number, h: number) => Math.abs(x - w / 2) < 9 && Math.abs(y - h / 2) < 2,
+  'mouth_open.png': (x: number, y: number, w: number, h: number) => Math.hypot((x - w / 2) / 8, (y - h / 2) / 6) < 1,
+  'mouth_smile.png': (x: number, y: number, w: number, h: number) => arc(x, y, w / 2, h * 0.15, 11, false),
+  'mouth_frown.png': (x: number, y: number, w: number, h: number) => arc(x, y, w / 2, h * 0.95, 11, true),
+};
 
 // Paleta próxima da Tera atual (moletom terracota, cabelo ruivo, pele clara)
 const HOODIE: Rgb = [200, 100, 60];
@@ -40,7 +61,9 @@ const PARTS: Part[] = [
   { file: 'shoe_l.png', w: 56, h: 30, shape: 'rounded', fill: SHOE, radius: 14 },
   { file: 'shoe_r.png', w: 56, h: 30, shape: 'rounded', fill: SHOE, radius: 14 },
   { file: 'head.png', w: 210, h: 190, shape: 'ellipse', fill: HAIR },
-  { file: 'face.png', w: 150, h: 112, shape: 'ellipse', fill: SKIN, face: true },
+  { file: 'face.png', w: 150, h: 112, shape: 'ellipse', fill: SKIN },
+  ...Object.entries(EYES).map(([file, ink]): Part => ({ file, w: 110, h: 30, shape: 'ink', fill: INK, ink })),
+  ...Object.entries(MOUTHS).map(([file, ink]): Part => ({ file, w: 40, h: 24, shape: 'ink', fill: INK, ink })),
   { file: 'ear_l.png', w: 64, h: 76, shape: 'triangle', fill: HAIR },
   { file: 'ear_r.png', w: 64, h: 76, shape: 'triangle', fill: HAIR },
   { file: 'tail_1.png', w: 30, h: 78, shape: 'rounded', fill: HAIR, radius: 14 },
@@ -52,7 +75,7 @@ const SS = 4; // supersampling por eixo
 const OUTLINE = 5;
 
 /** Distância com sinal até a borda da forma (negativo = dentro), em px */
-function sdf(shape: Shape, w: number, h: number, x: number, y: number, radius = 0): number {
+function sdf(shape: Exclude<Shape, 'ink'>, w: number, h: number, x: number, y: number, radius = 0): number {
   if (shape === 'ellipse') {
     const rx = w / 2 - 1;
     const ry = h / 2 - 1;
@@ -88,23 +111,20 @@ function render(p: Part): Buffer {
         for (let sx = 0; sx < SS; sx++) {
           const fx = x + (sx + 0.5) / SS;
           const fy = y + (sy + 0.5) / SS;
-          const d = sdf(p.shape, p.w, p.h, fx, fy, p.radius);
+          if (p.ink) {
+            if (p.ink(fx, fy, p.w, p.h)) { cover++; ink++; }
+            continue;
+          }
+          const d = sdf(p.shape as Exclude<Shape, 'ink'>, p.w, p.h, fx, fy, p.radius);
           if (d > 0) continue;
           cover++;
-          let dark = d > -OUTLINE;
-          if (p.face) {
-            // olhos e boca provisórios: pontos escuros
-            const eye = (cx: number) => Math.hypot(fx - cx, fy - p.h * 0.45) < 9;
-            const mouth = Math.abs(fx - p.w / 2) < 10 && Math.abs(fy - p.h * 0.72) < 2.5;
-            if (eye(p.w * 0.32) || eye(p.w * 0.68) || mouth) dark = true;
-          }
-          if (dark) ink++;
+          if (d > -OUTLINE) ink++;
         }
       }
       const i = (y * p.w + x) * 4;
       if (!cover) continue;
       // hachura diagonal leve: deixa claro que é provisório
-      const hatch = (x + y) % 14 < 2 ? 0.88 : 1;
+      const hatch = p.ink || (x + y) % 14 >= 2 ? 1 : 0.88;
       const t = ink / cover;
       for (let c = 0; c < 3; c++) px[i + c] = Math.round((p.fill[c]! * hatch) * (1 - t) + INK[c]! * t);
       px[i + 3] = Math.round((cover / (SS * SS)) * 255);
@@ -152,7 +172,7 @@ function encodePng(w: number, h: number, rgba: Buffer): Buffer {
   ]);
 }
 
-const outDir = path.join(process.cwd(), 'dev', 'skins', 'tera-rig', 'parts');
+const outDir = path.resolve(__dirname, '..', '..', '..', '..', 'assets', 'skins', 'tera-rig', 'parts'); // dist/scripts → raiz
 fs.mkdirSync(outDir, { recursive: true });
 for (const p of PARTS) fs.writeFileSync(path.join(outDir, p.file), render(p));
 console.log(`[rig] ${PARTS.length} camadas provisórias em ${outDir}`);

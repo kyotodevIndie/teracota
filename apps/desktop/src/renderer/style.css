@@ -156,3 +156,8 @@ body.hovering:active { cursor: grabbing; }
   /* biome-ignore lint/complexity/noImportantStyles: quem pede menos movimento precisa vencer qualquer animação */
   #character, #walker, .foot { animation: none !important; }
 }
+
+/* movimento reduzido pedido no menu (o do sistema é o @media acima) */
+/* biome-ignore lint/complexity/noImportantStyles: quem pede menos movimento precisa vencer qualquer animação */
+/* biome-ignore lint/style/noDescendingSpecificity: regra de exceção, de propósito no fim do arquivo */
+body.reduced-motion #character, body.reduced-motion #walker, body.reduced-motion .foot { animation: none !important; }

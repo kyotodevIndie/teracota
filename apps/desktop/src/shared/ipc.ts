@@ -17,6 +17,9 @@ export const IPC = {
   getSkin: 'teracota:get-skin',
   getFallbackSkin: 'teracota:get-fallback-skin',
   clicked: 'teracota:clicked',
+  walkTo: 'teracota:walk-to',
+  walkArrived: 'teracota:walk-arrived',
+  motion: 'teracota:motion',
 } as const;
 
 /** roam = passeia pela tela; stay = fica parado onde foi deixado */
@@ -25,10 +28,27 @@ export type MoveMode = 'roam' | 'stay';
 /** single = uma Tera pra todas as sessões; multi = uma por sessão de agente */
 export type EntityMode = 'single' | 'multi';
 
+/** Um trecho de passeio: o renderer anda a janela de `from` até `to` na velocidade dada */
+export interface WalkPlan {
+  from: Point;
+  to: Point;
+  /** px por segundo */
+  speed: number;
+  dir: 1 | -1;
+}
+
 export interface WalkInfo {
   walking: boolean;
   /** 1 = direita, -1 = esquerda */
   dir: 1 | -1;
+  /** Presente quando começa um trecho */
+  plan?: WalkPlan;
+}
+
+/** Preferências de movimento vindas do main */
+export interface MotionInfo {
+  /** O usuário pediu menos movimento no menu (o renderer também respeita o do sistema) */
+  reduced: boolean;
 }
 
 export interface ModeInfo {
@@ -61,11 +81,16 @@ export interface CompanionApi {
   onIdentity(cb: (identity: Identity) => void): void;
   /** A entidade vai embora (sessão encerrada) — a janela fecha logo depois */
   onLeave(cb: () => void): void;
+  onMotion(cb: (info: MotionInfo) => void): void;
   setIgnoreMouse(ignore: boolean): void;
   openContextMenu(): void;
   moveBy(dx: number, dy: number): void;
   dragEnd(): void;
   setWalkAllowed(allowed: boolean): void;
+  /** Passo do passeio (posição absoluta da janela), no ritmo dos quadros da tela */
+  walkTo(x: number, y: number): void;
+  /** Chegou ao fim do trecho */
+  walkArrived(): void;
   /** Clicaram na Tera (o main usa pra aceitar ofertas, ex.: conectar a um agente) */
   notifyClick(): void;
 }

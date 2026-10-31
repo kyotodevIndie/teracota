@@ -1,19 +1,19 @@
-// Faz a janela do personagem passear pela tela: escolhe um ponto próximo,
-// anda até ele, descansa um pouco e repete. Só anda quando o renderer
-// permite (ocioso, sem mouse em cima, sem arrastar) e no modo 'roam'.
-import { type BrowserWindow, screen } from 'electron';
-import type { MoveMode, Point, WalkInfo } from '../shared/ipc';
+// Planeja os passeios da Tera: escolhe um ponto próximo, manda o plano pro renderer
+// (que anda a janela a cada quadro da tela, junto com o desenho), descansa e repete.
+// Só anda quando o renderer permite (ocioso, sem mouse em cima, sem arrastar, sem
+// movimento reduzido) e no modo 'roam'.
+import type { MoveMode, Point, WalkInfo, WalkPlan } from '../shared/ipc';
+import { type Rect, type Size, clampToArea } from './geometry';
 
-const SPEED = 70; // px/s
-const TICK_MS = 16;
+export const SPEED = 70; // px/s
+const TICK_MS = 200; // só agenda; o movimento em si é no renderer
 const MIN_TRIP = 60;
 const TRIP = { min: 150, max: 450 };
 const REST = { min: 3000, max: 10_000 };
-/** Quanto a janela pode subir além do topo da tela (só o espaço do balão fica de fora) */
-const TOP_OVERFLOW = 120;
+/** Folga pro renderer avisar que chegou antes do main desistir do trecho */
+const ARRIVAL_GRACE_MS = 1500;
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 export interface WalkerEvents {
   onWalk(info: WalkInfo): void;
@@ -21,23 +21,39 @@ export interface WalkerEvents {
   onStop(): void;
 }
 
+/** O que o Walker precisa da janela e da tela (injetável nos testes) */
+export interface WalkerHost {
+  position(): Point;
+  /** Área útil do monitor onde a janela está */
+  workArea(): Rect;
+  moveTo(p: Point): void;
+  alive(): boolean;
+}
+
 export class Walker {
   private allowed = false;
-  private target: Point | null = null;
-  private pos: Point = { x: 0, y: 0 };
+  private paused = false;
+  private plan: WalkPlan | null = null;
+  private deadline = 0;
   private dir: 1 | -1 = 1;
   private restUntil = Date.now() + rand(REST.min, REST.max);
-  private lastTick = Date.now();
   private readonly timer: NodeJS.Timeout;
 
   constructor(
-    private readonly win: BrowserWindow,
-    private readonly size: { width: number; height: number },
+    private readonly host: WalkerHost,
+    private readonly size: Size,
     private mode: MoveMode,
     private readonly events: WalkerEvents,
   ) {
-    this.timer = setInterval(() => this.step(), TICK_MS);
-    win.on('closed', () => clearInterval(this.timer));
+    this.timer = setInterval(() => this.check(), TICK_MS);
+  }
+
+  get walking(): boolean {
+    return this.plan !== null;
+  }
+
+  dispose(): void {
+    clearInterval(this.timer);
   }
 
   setMode(mode: MoveMode): void {
@@ -52,8 +68,6 @@ export class Walker {
     else this.restUntil = Math.max(this.restUntil, Date.now() + rand(1500, 4000));
   }
 
-  private paused = false;
-
   /** Janela escondida: não anda (mas lembra se estava liberado) */
   setPaused(paused: boolean): void {
     this.paused = paused;
@@ -66,61 +80,56 @@ export class Walker {
     this.restUntil = Date.now() + rand(5000, 10_000);
   }
 
+  /** Passo vindo do renderer; ignorado se não há trecho em andamento (ex.: chegou atrasado) */
+  stepTo(p: Point): void {
+    if (!this.plan) return;
+    this.host.moveTo(clampToArea(p, this.size, this.host.workArea()));
+  }
+
+  /** O renderer chegou ao fim do trecho */
+  arrived(): void {
+    if (!this.plan) return;
+    this.host.moveTo(this.plan.to);
+    this.restUntil = Date.now() + rand(REST.min, REST.max);
+    this.halt();
+  }
+
   private halt(): void {
-    if (!this.target) return;
-    this.target = null;
+    if (!this.plan) return;
+    this.plan = null;
     this.events.onWalk({ walking: false, dir: this.dir });
     this.events.onStop();
   }
 
-  private step(): void {
+  private check(): void {
+    if (!this.host.alive()) {
+      this.dispose();
+      return;
+    }
     const now = Date.now();
-    const dt = Math.min(0.1, (now - this.lastTick) / 1000);
-    this.lastTick = now;
-    if (this.mode !== 'roam' || !this.allowed || this.paused || this.win.isDestroyed()) return;
-
-    if (!this.target) {
-      if (now >= this.restUntil) this.pickTarget();
+    if (this.plan) {
+      // o renderer sumiu (janela travada, recarregando): não fica "andando" pra sempre
+      if (now > this.deadline) this.halt();
       return;
     }
-
-    const dx = this.target.x - this.pos.x;
-    const dy = this.target.y - this.pos.y;
-    const dist = Math.hypot(dx, dy);
-    const stepLen = SPEED * dt;
-
-    if (dist <= stepLen) {
-      this.pos = { ...this.target };
-      this.moveWindow();
-      this.restUntil = now + rand(REST.min, REST.max);
-      this.halt();
-      return;
-    }
-    this.pos.x += (dx / dist) * stepLen;
-    this.pos.y += (dy / dist) * stepLen;
-    this.moveWindow();
+    if (this.mode !== 'roam' || !this.allowed || this.paused || now < this.restUntil) return;
+    this.pickTarget(now);
   }
 
-  private pickTarget(): void {
-    const b = this.win.getBounds();
-    const area = screen.getDisplayMatching(b).workArea;
+  private pickTarget(now: number): void {
+    const from = this.host.position();
+    const area = this.host.workArea();
     const angle = rand(0, Math.PI * 2);
     const dist = rand(TRIP.min, TRIP.max);
-    const x = clamp(b.x + Math.cos(angle) * dist, area.x, area.x + area.width - this.size.width);
-    const y = clamp(b.y + Math.sin(angle) * dist, area.y - TOP_OVERFLOW, area.y + area.height - this.size.height);
-
-    if (Math.hypot(x - b.x, y - b.y) < MIN_TRIP) {
-      this.restUntil = Date.now() + 1000; // encostado na borda — tenta outra direção logo
+    const to = clampToArea({ x: from.x + Math.cos(angle) * dist, y: from.y + Math.sin(angle) * dist }, this.size, area);
+    const length = Math.hypot(to.x - from.x, to.y - from.y);
+    if (length < MIN_TRIP) {
+      this.restUntil = now + 1000; // encostado na borda — tenta outra direção logo
       return;
     }
-    this.pos = { x: b.x, y: b.y };
-    this.target = { x, y };
-    if (Math.abs(x - b.x) > 5) this.dir = x > b.x ? 1 : -1;
-    this.events.onWalk({ walking: true, dir: this.dir });
-  }
-
-  private moveWindow(): void {
-    // setBounds (e não setPosition) evita a janela "crescer" com escala de DPI fracionada no Windows
-    this.win.setBounds({ x: Math.round(this.pos.x), y: Math.round(this.pos.y), ...this.size });
+    if (Math.abs(to.x - from.x) > 5) this.dir = to.x > from.x ? 1 : -1;
+    this.plan = { from, to, speed: SPEED, dir: this.dir };
+    this.deadline = now + (length / SPEED) * 1000 + ARRIVAL_GRACE_MS;
+    this.events.onWalk({ walking: true, dir: this.dir, plan: this.plan });
   }
 }

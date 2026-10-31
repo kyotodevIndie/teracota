@@ -3,6 +3,8 @@
 // Servida por scripts/rig-inspect/server.ts — roda no navegador, sem Electron.
 import { parseRigManifest } from '@tera/character/rig';
 import { POSES, parseSkinManifest, type Pose, type SkinInfo } from '@tera/character/skin';
+import { EXPRESSIONS, type Expression } from '../../src/shared/protocol';
+import { FrameClock } from '../../src/renderer/frame-clock';
 import { RigCharacter } from '../../src/renderer/rig/rig-character';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -32,6 +34,9 @@ async function main(): Promise<void> {
   }
   log(`skin "${skinId}" carregada`);
   Object.assign(window, { character }); // pra inspecionar pelo console
+  // o mesmo relógio do app: desenha no ritmo que o personagem pede
+  new FrameClock((now) => character.tick(now), () => character.targetFps()).start();
+  document.addEventListener('mousemove', (e) => character.lookAt({ x: e.clientX, y: e.clientY }));
 
   const debug = $<HTMLInputElement>('debug');
   character.debug = debug.checked;
@@ -40,7 +45,16 @@ async function main(): Promise<void> {
   const pose = $<HTMLSelectElement>('pose');
   pose.append(...POSES.map((p) => new Option(p, p)));
   pose.value = 'idle';
-  pose.onchange = () => character.show({ pose: pose.value as Pose, expression: 'neutral', anim: null });
+  const expression = $<HTMLSelectElement>('expression');
+  expression.append(...EXPRESSIONS.map((x) => new Option(x, x)));
+  expression.value = 'neutral';
+  const showLook = () => character.show({ pose: pose.value as Pose, expression: expression.value as Expression, anim: null });
+  pose.onchange = showLook;
+  expression.onchange = showLook;
+  const talking = $<HTMLInputElement>('talking');
+  talking.onchange = () => character.setTalking(talking.checked);
+  const reduced = $<HTMLInputElement>('reduced');
+  reduced.onchange = () => character.setReducedMotion(reduced.checked);
 
   // arrasto simulado: um seno no ângulo do pêndulo, como se o mouse fosse e voltasse
   let swingTimer: number | undefined;
@@ -72,7 +86,7 @@ async function main(): Promise<void> {
     const live = character.stats();
     // custo puro de desenho: 600 quadros seguidos, sem esperar o vsync
     character.resetStats();
-    for (let i = 0; i < 600; i++) character.drawFrame(performance.now() + i * 16);
+    for (let i = 0; i < 600; i++) character.tick(performance.now() + i * 16);
     const draw = character.stats();
     const r = $('character').getBoundingClientRect();
     const N = 10_000;

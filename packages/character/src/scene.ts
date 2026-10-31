@@ -9,23 +9,37 @@ import {
 /** Lado máximo da máscara de alfa de cada camada (px) */
 const MASK_MAX = 64;
 
+interface LoadedVariant {
+  bitmap: ImageBitmap;
+  mask: AlphaMask;
+}
+
 interface LoadedLayer {
   layer: RigLayer;
-  bitmap: ImageBitmap;
-  /** tamanho da imagem original (o espaço de `pivot` e `at` dos filhos) */
+  variants: Map<string, LoadedVariant>;
+  /** tamanho da imagem padrão (o espaço de `pivot` e `at` dos filhos) */
   width: number;
   height: number;
+}
+
+/** O que muda de um quadro pro outro além das matrizes */
+export interface SceneState {
+  /** Variante por camada (ausente ou desconhecida = "default") */
+  variants?: Record<string, string>;
+  hidden?: Set<string>;
 }
 
 export class RigScene {
   private readonly order: RigLayer[];
   private readonly drawn: RigLayer[];
   private world = new Map<string, Mat>();
+  /** Camadas e máscaras do último quadro desenhado (o clique usa o que está na tela) */
+  private visible: RigLayer[] = [];
+  private masks = new Map<string, AlphaMask>();
 
   private constructor(
     readonly rig: RigManifest,
     private readonly loaded: Map<string, LoadedLayer>,
-    private readonly masks: Map<string, AlphaMask>,
   ) {
     this.order = topoOrder(rig);
     this.drawn = drawOrder(rig);
@@ -38,52 +52,65 @@ export class RigScene {
    */
   static async load(rig: RigManifest, baseUrl: string, scale: number): Promise<RigScene> {
     const loaded = new Map<string, LoadedLayer>();
-    const masks = new Map<string, AlphaMask>();
     await Promise.all(rig.layers.map(async (layer) => {
-      const img = new Image();
-      img.src = new URL(layer.image, baseUrl).href;
-      try {
-        await img.decode();
-      } catch {
-        throw new Error(`camada "${layer.id}": não consegui carregar ${layer.image}`);
-      }
-      const { naturalWidth: width, naturalHeight: height } = img;
       const maxScale = Math.max(...layer.scale) * 1.5; // folga pra respiração/escala procedural
       const k = Math.min(1, scale * maxScale);
-      const bitmap = await createImageBitmap(img, {
-        resizeWidth: Math.max(1, Math.round(width * k)),
-        resizeHeight: Math.max(1, Math.round(height * k)),
-        resizeQuality: 'high',
-      });
-      loaded.set(layer.id, { layer, bitmap, width, height });
-      masks.set(layer.id, alphaMask(img, width, height));
+      const variants = new Map<string, LoadedVariant>();
+      let size: { width: number; height: number } | null = null;
+      // todas as variantes são decodificadas agora: trocar de expressão nunca espera disco
+      for (const [name, file] of Object.entries(layer.variants)) {
+        const img = new Image();
+        img.src = new URL(file, baseUrl).href;
+        try {
+          await img.decode();
+        } catch {
+          throw new Error(`camada "${layer.id}": não consegui carregar ${file}`);
+        }
+        const { naturalWidth: width, naturalHeight: height } = img;
+        if (name === 'default') size = { width, height };
+        const bitmap = await createImageBitmap(img, {
+          resizeWidth: Math.max(1, Math.round(width * k)),
+          resizeHeight: Math.max(1, Math.round(height * k)),
+          resizeQuality: 'high',
+        });
+        variants.set(name, { bitmap, mask: alphaMask(img, width, height) });
+      }
+      loaded.set(layer.id, { layer, variants, ...size! });
     }));
-    return new RigScene(rig, loaded, masks);
+    return new RigScene(rig, loaded);
   }
 
   /**
    * Desenha a cena.
    * @param root transformação px do rig → px do canvas (movimento do corpo inteiro)
    */
-  draw(ctx: CanvasRenderingContext2D, root: Mat, offsets: Record<string, LayerOffset>, debug = false): void {
+  draw(ctx: CanvasRenderingContext2D, root: Mat, offsets: Record<string, LayerOffset>, state: SceneState = {}, debug = false): void {
     this.world = worldMatrices(this.order, offsets);
+    this.visible = [];
+    this.masks = new Map();
     for (const l of this.drawn) {
+      if (state.hidden?.has(l.id)) continue;
       const item = this.loaded.get(l.id)!;
+      // variante pedida e inexistente (ex.: expressão de outro rig) cai na padrão
+      const v = item.variants.get(state.variants?.[l.id] ?? 'default') ?? item.variants.get('default')!;
       const m = multiply(root, this.world.get(l.id)!);
       ctx.setTransform(m[0], m[1], m[2], m[3], m[4], m[5]);
-      ctx.drawImage(item.bitmap, 0, 0, item.width, item.height);
+      // a variante é desenhada no espaço da padrão (pivô e filhos dependem dele)
+      ctx.drawImage(v.bitmap, 0, 0, item.width, item.height);
+      this.visible.push(l);
+      this.masks.set(l.id, v.mask);
     }
     if (debug) this.drawDebug(ctx, root);
   }
 
-  /** Camada sob o ponto (px do rig), considerando a última pose desenhada; null = nenhuma */
+  /** Camada sob o ponto (px do rig), considerando o último quadro desenhado; null = nenhuma */
   hit(x: number, y: number): string | null {
-    return hitLayer(this.drawn, this.world, this.masks, x, y);
+    return hitLayer(this.visible, this.world, this.masks, x, y);
   }
 
   /** Pivôs (pontos) e caixas das camadas, pra conferir o rig */
   private drawDebug(ctx: CanvasRenderingContext2D, root: Mat): void {
-    for (const l of this.drawn) {
+    for (const l of this.visible) {
       const item = this.loaded.get(l.id)!;
       const m = multiply(root, this.world.get(l.id)!);
       const corners = [[0, 0], [item.width, 0], [item.width, item.height], [0, item.height]].map(([x, y]) => apply(m, x!, y!));

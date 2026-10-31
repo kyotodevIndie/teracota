@@ -32,6 +32,6 @@ jobs:
         run: pnpm docs:build
       - name: Manifestos do plugin são JSON válido
         run: |
-          for f in plugin/.claude-plugin/plugin.json plugin/hooks/hooks.json .claude-plugin/marketplace.json assets/skins/*/skin.json apps/desktop/dev/skins/*/skin.json; do
+          for f in plugin/.claude-plugin/plugin.json plugin/hooks/hooks.json .claude-plugin/marketplace.json assets/skins/*/skin.json; do
             node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" && echo "ok  $f"
           done

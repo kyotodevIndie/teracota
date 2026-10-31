@@ -125,3 +125,56 @@ describe('clique', () => {
     expect(hitLayer(drawn, world, masks, 110, 105)).toBe('back');
   });
 });
+
+describe('variantes, poses, expressões e controladores', () => {
+  const face = () => [
+    layer('body', null),
+    layer('legL', 'body'), layer('legR', 'body'),
+    layer('eyes', 'body', { variants: { closed: 'parts/eyes_closed.png', happy: 'parts/eyes_happy.png' } }),
+    layer('mouth', 'body', { variants: { open: 'parts/mouth_open.png' } }),
+    layer('zzz', 'body', { visible: false }),
+  ];
+
+  it('aceita variantes e preenche "default" com a image', () => {
+    const r = parseRigManifest(rig(face()));
+    expect(r.errors).toBeUndefined();
+    expect(r.rig!.layers.find((l) => l.id === 'eyes')!.variants).toEqual({ default: 'parts/eyes.png', closed: 'parts/eyes_closed.png', happy: 'parts/eyes_happy.png' });
+    expect(r.rig!.layers.find((l) => l.id === 'zzz')!.visible).toBe(false);
+  });
+
+  it('recusa variante com caminho inseguro ou nome reservado', () => {
+    expect(parseRigManifest(rig([layer('body', null, { variants: { x: '../fora.png' } })])).errors?.[0]).toMatch(/variante "x"/);
+    expect(parseRigManifest(rig([layer('body', null, { variants: { default: 'a.png' } })])).errors?.[0]).toMatch(/variante "default"/);
+  });
+
+  it('poses e expressões só com camadas e variantes que existem', () => {
+    const ok = parseRigManifest(rig(face(), {
+      poses: { sleep: { layers: { eyes: { variant: 'closed' }, zzz: { visible: true }, body: { rotation: 3, dy: 4 } } } },
+      expressions: { happy: { eyes: 'happy', mouth: 'open' } },
+    }));
+    expect(ok.errors).toBeUndefined();
+    expect(ok.rig!.poses.sleep!.layers.body).toEqual({ rotation: 3, dy: 4 });
+    expect(parseRigManifest(rig(face(), { poses: { sleep: { layers: { eyes: { variant: 'nada' } } } } })).errors?.[0]).toMatch(/variante "nada"/);
+    expect(parseRigManifest(rig(face(), { expressions: { happy: { eyes: 'nada' } } })).errors?.[0]).toMatch(/sem a variante/);
+  });
+
+  it('controladores de piscada, olhar, fala e caminhada', () => {
+    const r = parseRigManifest(rig(face(), {
+      controllers: {
+        blink: { layer: 'eyes', closed: 'closed' },
+        gaze: { layer: 'eyes', max: [4, -2] },
+        talk: { layer: 'mouth', variants: ['default', 'open'] },
+        walk: { legs: ['legL', 'legR'] },
+      },
+    }));
+    expect(r.errors).toBeUndefined();
+    expect(r.rig!.controllers).toMatchObject({
+      blink: { layer: 'eyes', open: 'default', closed: 'closed', interval: [2500, 6000], duration: 130 },
+      gaze: { layer: 'eyes', max: [4, 2], headMax: 4 },
+      talk: { variants: ['default', 'open'], period: 110 },
+      walk: { legs: ['legL', 'legR'], swing: 22, period: 560 },
+    });
+    expect(parseRigManifest(rig(face(), { controllers: { blink: { layer: 'eyes', closed: 'nada' } } })).errors?.[0]).toMatch(/blink/);
+    expect(parseRigManifest(rig(face(), { controllers: { talk: { layer: 'mouth', variants: ['open'] } } })).errors?.[0]).toMatch(/talk/);
+  });
+});

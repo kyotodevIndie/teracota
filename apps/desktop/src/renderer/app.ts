@@ -1,9 +1,11 @@
 // Cérebro do personagem: estados vindos do Claude, passeio e interação com o mouse.
-import type { Identity, ModeInfo, Point, WalkInfo } from '../shared/ipc';
+import type { Identity, ModeInfo, MotionInfo, Point, WalkInfo, WalkPlan } from '../shared/ipc';
 import type { Anim, Expression, StateName, CompanionEvent } from '../shared/protocol';
 import type { Pose } from '@tera/character/skin';
 import { Bubble } from './bubble';
 import type { Character } from './character';
+import { FrameClock } from './frame-clock';
+import { PointerGesture } from './gesture';
 import { poseFor, type Look } from './look';
 import { Pendulum } from './pendulum';
 import { PetDetector } from './pet';
@@ -11,6 +13,7 @@ import { RigCharacter } from './rig/rig-character';
 import { SpriteCharacter } from './sprite-character';
 import { SLEEP_AFTER, STATE_DEFS, TOOL_STATE_TIMEOUT } from './states';
 import { SvgCharacter } from './svg-character';
+import { walkStep } from './walk-plan';
 
 interface Reaction {
   pose?: Pose;
@@ -20,7 +23,6 @@ interface Reaction {
   duration?: number;
 }
 
-const DRAG_THRESHOLD = 4;
 const pick = <T>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;
 
 const api = window.teracota;
@@ -43,7 +45,13 @@ let walking = false;
 let hovering = false;
 let dragging = false;
 let leaving = false;
-let pressed: (Point & { moved: number }) | null = null;
+const gesture = new PointerGesture();
+/** Movimento reduzido: pedido no menu (main) ou no sistema (prefers-reduced-motion) */
+let motionFromMenu = false;
+const systemReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+const reducedMotion = (): boolean => motionFromMenu || systemReduced.matches;
+/** Trecho de passeio em andamento (executado aqui, a cada quadro da tela) */
+let walkPlan: { plan: WalkPlan; startedAt: number; last: Point | null } | null = null;
 
 const baseState = (): StateName => (working ? 'thinking' : 'idle');
 
@@ -115,15 +123,40 @@ function onLeave(): void {
 
 let lastAllowed: boolean | null = null;
 function updateWalkAllowed(): void {
-  const allowed = current === 'idle' && !working && !hovering && !dragging && !leaving;
+  const allowed = current === 'idle' && !working && !hovering && !dragging && !leaving && !reducedMotion();
   if (allowed === lastAllowed) return;
   lastAllowed = allowed;
   api?.setWalkAllowed(allowed);
 }
 
-function onWalk({ walking: isWalking, dir }: WalkInfo): void {
+function onWalk({ walking: isWalking, dir, plan }: WalkInfo): void {
   walking = isWalking;
+  walkPlan = isWalking && plan ? { plan, startedAt: performance.now(), last: null } : null;
   if (!dragging) character.setMotion(walking ? 'walk' : null, dir);
+}
+
+/** Um quadro do passeio: a janela anda no mesmo quadro em que o corpo é desenhado */
+function stepWalk(now: number): void {
+  if (!walkPlan) return;
+  const { position, done } = walkStep(walkPlan.plan, now - walkPlan.startedAt);
+  if (!walkPlan.last || position.x !== walkPlan.last.x || position.y !== walkPlan.last.y) {
+    api?.walkTo(position.x, position.y);
+    walkPlan.last = position;
+  }
+  if (done) {
+    walkPlan = null;
+    api?.walkArrived();
+  }
+}
+
+function onMotion({ reduced }: MotionInfo): void {
+  motionFromMenu = reduced;
+  applyReducedMotion();
+}
+
+function applyReducedMotion(): void {
+  character.setReducedMotion(reducedMotion());
+  updateWalkAllowed();
 }
 
 function onMode({ mode, announce }: ModeInfo): void {
@@ -160,25 +193,17 @@ function onClick(): void {
 }
 
 const pendulum = new Pendulum();
-let swingFrame: number | undefined;
-
-function swingLoop(now: number): void {
-  character.setSwing(pendulum.step(now));
-  swingFrame = requestAnimationFrame(swingLoop);
-}
 
 function startDrag(): void {
   dragging = true;
   character.setMotion('drag', 1);
   pendulum.reset();
-  swingFrame = requestAnimationFrame(swingLoop);
   if (Math.random() < 0.5) say(pick(['Uaaa!', 'Ei, me solta!', 'Wiii!']));
   updateWalkAllowed();
 }
 
 function endDrag(): void {
   dragging = false;
-  if (swingFrame !== undefined) cancelAnimationFrame(swingFrame);
   character.setSwing(0);
   character.setMotion(null, 1);
   api?.dragEnd();
@@ -201,33 +226,31 @@ function setHovering(over: boolean): void {
  * Windows às vezes param de chegar e deixavam a Tera impossível de clicar.
  */
 function onCursor(p: Point): void {
-  if (!pressed) setHovering(character.hitTest(p.x, p.y));
+  if (!gesture.active) setHovering(character.hitTest(p.x, p.y));
   if (!walking && !dragging) character.lookAt(p);
 }
 
 /** Encerra um clique/arrasto (inclusive quando o "soltar" se perdeu fora da janela) */
 function release(clicked: boolean): void {
-  if (!pressed) return;
-  pressed = null;
-  if (dragging) endDrag();
-  else if (clicked) onClick();
+  const ev = gesture.up(clicked);
+  if (ev?.type === 'drag-end') endDrag();
+  else if (ev?.type === 'click') onClick();
 }
 
 function bindMouse(): void {
   window.addEventListener('mousemove', (e) => {
-    if (!pressed) {
+    if (!gesture.active) {
       if (hovering) petting.track(e.screenX);
       return;
     }
     // botão já solto e o mouseup não chegou (arrasto rápido escapou da janela)
     if (e.buttons === 0) return release(false);
-    const dx = e.screenX - pressed.x;
-    const dy = e.screenY - pressed.y;
-    pressed = { x: e.screenX, y: e.screenY, moved: pressed.moved + Math.abs(dx) + Math.abs(dy) };
-    if (!dragging && pressed.moved > DRAG_THRESHOLD) startDrag();
-    if (dragging) {
-      api?.moveBy(dx, dy);
-      pendulum.push(dx);
+    for (const ev of gesture.move(e.screenX, e.screenY)) {
+      if (ev.type === 'drag-start') startDrag();
+      else if (ev.type === 'drag') {
+        api?.moveBy(ev.dx, ev.dy);
+        pendulum.push(ev.dx);
+      }
     }
   });
 
@@ -235,7 +258,7 @@ function bindMouse(): void {
   // coordenadas deles são confiáveis, então o teste de pixel decide na hora.
   window.addEventListener('mousedown', (e) => {
     if (e.button !== 0 || !character.hitTest(e.clientX, e.clientY)) return;
-    pressed = { x: e.screenX, y: e.screenY, moved: 0 };
+    gesture.down(e.screenX, e.screenY);
     setHovering(true);
   });
 
@@ -254,7 +277,7 @@ function bindMouse(): void {
   // Reafirma o estado de tempos em tempos: se main e renderer divergirem por
   // qualquer motivo (recarregar, janela escondida/mostrada), se corrige sozinho.
   api?.setIgnoreMouse(true);
-  window.setInterval(() => api?.setIgnoreMouse(!hovering && !pressed), 1000);
+  window.setInterval(() => api?.setIgnoreMouse(!hovering && !gesture.active), 1000);
 }
 
 // ---------- inicialização ----------
@@ -303,11 +326,22 @@ if (api) {
   api.onMode(whenReady(onMode));
   api.onIdentity(whenReady(onIdentity));
   api.onLeave(whenReady(onLeave));
+  api.onMotion(whenReady(onMotion));
   api.onCursor((p) => { if (ready) onCursor(p); });
 }
 
+/** Um relógio pra janela: passeio, balanço do arrasto e desenho no mesmo quadro da tela */
+const clock = new FrameClock((now) => {
+  stepWalk(now);
+  if (dragging) character.setSwing(reducedMotion() ? 0 : pendulum.step(now));
+  character.tick(now);
+}, () => (walkPlan || dragging ? Number.POSITIVE_INFINITY : character.targetFps()));
+
 async function init(): Promise<void> {
   character = await createCharacter();
+  character.setReducedMotion(reducedMotion());
+  systemReduced.addEventListener('change', () => { if (ready) applyReducedMotion(); });
+  clock.start();
   bindMouse();
   setState('idle');
   ready = true;

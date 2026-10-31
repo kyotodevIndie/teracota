@@ -78,3 +78,42 @@ export function wobbleFor(pose: Pose, t: number, dir: 1 | -1): Wobble {
   }
   return w;
 }
+
+/** Duração da troca suave de um movimento pro outro (ms) */
+export const WOBBLE_BLEND_MS = 220;
+
+const neutral = (pivotY: number): Wobble => ({ dx: 0, dy: 0, sx: 1, sy: 1, rot: 0, pivotY });
+
+function mix(a: Wobble, b: Wobble, t: number): Wobble {
+  const m = (x: number, y: number) => x + (y - x) * t;
+  return { dx: m(a.dx, b.dx), dy: m(a.dy, b.dy), sx: m(a.sx, b.sx), sy: m(a.sy, b.sy), rot: m(a.rot, b.rot), pivotY: m(a.pivotY, b.pivotY) };
+}
+
+const smoothstep = (t: number) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+
+/**
+ * Movimento do corpo inteiro com troca suave entre poses. Usa sempre o relógio contínuo
+ * (`now`), então a respiração não reinicia a cada troca, e mistura o movimento antigo
+ * com o novo por WOBBLE_BLEND_MS em vez de pular. Movimento reduzido = corpo parado.
+ */
+export class WobbleMixer {
+  private pose: Pose | null = null;
+  private from: Pose | null = null;
+  private changedAt = 0;
+
+  set(pose: Pose, now: number): void {
+    if (pose === this.pose) return;
+    this.from = this.pose;
+    this.pose = pose;
+    this.changedAt = now;
+  }
+
+  get(now: number, dir: 1 | -1, reduced: boolean): Wobble {
+    const pose = this.pose ?? 'idle';
+    const target = reduced ? neutral(wobbleFor(pose, 0, dir).pivotY) : wobbleFor(pose, now, dir);
+    const t = smoothstep((now - this.changedAt) / WOBBLE_BLEND_MS);
+    if (!this.from || t >= 1) return target;
+    const prev = reduced ? neutral(wobbleFor(this.from, 0, dir).pivotY) : wobbleFor(this.from, now, dir);
+    return mix(prev, target, t);
+  }
+}

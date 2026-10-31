@@ -1,7 +1,6 @@
 // Descobre e carrega skins de:
-//   <app>/assets/skins/<id>/skin.json      (skins que vêm com o app)
+//   <assets>/skins/<id>/skin.json          (skins que vêm com o app, inclusive o rig)
 //   <userData>/skins/<id>/skin.json        (skins instaladas pelo usuário)
-//   <repo>/dev/skins/<id>/skin.json        (só em desenvolvimento: skins experimentais, fora do instalador)
 import { app, nativeImage } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { assetsDir } from './paths';
 import { parseRigManifest } from '@tera/character/rig';
 import {
-  HIT_MASK_SIZE, ORIGINAL_SKIN_ID, SVG_SKIN_ID, parseSkinManifest,
+  DEFAULT_SKIN_ID, HIT_MASK_SIZE, ORIGINAL_SKIN_ID, SVG_SKIN_ID, parseSkinManifest,
   type Pose, type SkinAnimation, type SkinInfo, type SkinManifest,
 } from '@tera/character/skin';
 
@@ -19,10 +18,7 @@ export interface SkinEntry {
 }
 
 function skinRoots(): string[] {
-  const roots = [path.join(assetsDir(), 'skins'), path.join(app.getPath('userData'), 'skins')];
-  // skins experimentais (ex.: o rig com camadas provisórias) só aparecem em desenvolvimento
-  if (!app.isPackaged) roots.push(path.join(app.getAppPath(), 'dev', 'skins'));
-  return roots;
+  return [path.join(assetsDir(), 'skins'), path.join(app.getPath('userData'), 'skins')];
 }
 
 function findSkinDir(id: string): string | null {
@@ -103,13 +99,13 @@ export function listSkins(): SkinEntry[] {
 }
 
 /**
- * A skin configurada. Se ela falhar, a skin original da Tera (nunca "a primeira que
- * aparecer"); sem configuração, a original ou a primeira disponível; null = personagem SVG.
+ * A skin configurada; sem configuração, o rig padrão. Se falhar, a skin de sprites da
+ * Tera (nunca "a primeira que aparecer"); por último a primeira disponível; null = SVG.
  */
 export function loadSkin(id: string | undefined): SkinInfo | null {
   if (id === SVG_SKIN_ID) return null;
-  if (id) {
-    const skin = readSkin(id);
+  for (const candidate of [id, DEFAULT_SKIN_ID]) {
+    const skin = candidate ? readSkin(candidate) : null;
     if (skin) return skin;
   }
   const original = loadFallbackSkin();

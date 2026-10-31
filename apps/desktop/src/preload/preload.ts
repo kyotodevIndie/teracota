@@ -10,11 +10,14 @@ const api: CompanionApi = {
   onMode: (cb) => { ipcRenderer.on(IPC.mode, (_e, info) => cb(info)); },
   onIdentity: (cb) => { ipcRenderer.on(IPC.identity, (_e, identity) => cb(identity)); },
   onLeave: (cb) => { ipcRenderer.on(IPC.leave, () => cb()); },
+  onMotion: (cb) => { ipcRenderer.on(IPC.motion, (_e, info) => cb(info)); },
   setIgnoreMouse: (ignore) => ipcRenderer.send(IPC.setIgnoreMouse, ignore),
   openContextMenu: () => ipcRenderer.send(IPC.contextMenu),
   moveBy: (dx, dy) => ipcRenderer.send(IPC.moveBy, dx, dy),
   dragEnd: () => ipcRenderer.send(IPC.dragEnd),
   setWalkAllowed: (allowed) => ipcRenderer.send(IPC.walkAllowed, allowed),
+  walkTo: (x, y) => ipcRenderer.send(IPC.walkTo, x, y),
+  walkArrived: () => ipcRenderer.send(IPC.walkArrived),
   notifyClick: () => ipcRenderer.send(IPC.clicked),
 };
 

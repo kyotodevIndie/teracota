@@ -2,8 +2,9 @@
 import { BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { CHARACTER_NAME } from '../shared/brand';
-import { IPC, type Identity, type MoveMode, type Point } from '../shared/ipc';
+import { IPC, type Identity, type MotionInfo, type MoveMode, type Point } from '../shared/ipc';
 import type { CompanionEvent } from '../shared/protocol';
+import { recoverPosition } from './geometry';
 import { Walker } from './walker';
 
 export const SIZE = { width: 320, height: 440 };
@@ -36,6 +37,11 @@ export function isOnScreen({ x, y }: Point): boolean {
     cx >= a.x && cx <= a.x + a.width && cy >= a.y && cy <= a.y + a.height);
 }
 
+/** Posição dentro da área útil de algum monitor (o mais próximo, se caiu fora de todos) */
+export function onScreenPosition(p: Point): Point {
+  return recoverPosition(p, SIZE, screen.getAllDisplays().map((d) => d.workArea));
+}
+
 export class Entity {
   readonly win: BrowserWindow;
   sessionId: string | null = null;
@@ -45,6 +51,7 @@ export class Entity {
   private ready = false;
   private readonly queue: Array<[string, unknown]> = [];
   private moveMode: MoveMode;
+  private motion: MotionInfo = { reduced: false };
 
   constructor(opts: EntityOptions) {
     this.identity = opts.identity;
@@ -83,13 +90,20 @@ export class Entity {
       last = '';
       this.win.webContents.send(IPC.mode, { mode: this.moveMode, announce: false });
       this.win.webContents.send(IPC.identity, this.identity);
+      this.win.webContents.send(IPC.motion, this.motion);
       for (const [channel, payload] of this.queue.splice(0)) this.win.webContents.send(channel, payload);
     });
 
-    this.walker = new Walker(this.win, SIZE, opts.moveMode, {
+    this.walker = new Walker({
+      position: () => this.position,
+      workArea: () => screen.getDisplayMatching(this.win.getBounds()).workArea,
+      moveTo: (p) => this.moveTo(p),
+      alive: () => this.alive,
+    }, SIZE, opts.moveMode, {
       onWalk: (info) => this.post(IPC.walk, info),
       onStop: () => this.settle(),
     });
+    this.win.on('closed', () => this.walker.dispose());
 
     // Posição do cursor relativa à janela. O renderer usa pra saber se o mouse está em
     // cima do personagem (os eventos repassados pelo setIgnoreMouseEvents não são
@@ -135,6 +149,20 @@ export class Entity {
     this.walker.setAllowed(allowed);
   }
 
+  setMotion(motion: MotionInfo): void {
+    this.motion = motion;
+    this.post(IPC.motion, motion);
+  }
+
+  /** Passo do passeio vindo do renderer */
+  walkTo(p: Point): void {
+    this.walker.stepTo(p);
+  }
+
+  walkArrived(): void {
+    this.walker.arrived();
+  }
+
   setIgnoreMouse(ignore: boolean): void {
     if (this.alive) this.win.setIgnoreMouseEvents(ignore, { forward: true });
   }
@@ -155,8 +183,22 @@ export class Entity {
     this.settle();
   }
 
+  /** Parou num lugar novo (soltou do arrasto, fim do passeio): garante que ficou visível e salva */
   settle(): void {
-    if (this.alive) this.onSettle?.(this.position);
+    if (!this.alive) return;
+    this.ensureOnScreen();
+    this.onSettle?.(this.position);
+  }
+
+  /** Solta fora da tela ou num monitor que sumiu: volta pra área útil mais próxima */
+  ensureOnScreen(): void {
+    if (!this.alive) return;
+    const p = this.position;
+    const fixed = onScreenPosition(p);
+    if (fixed.x !== p.x || fixed.y !== p.y) {
+      this.walker.interrupt();
+      this.moveTo(fixed);
+    }
   }
 
   setVisible(visible: boolean): void {

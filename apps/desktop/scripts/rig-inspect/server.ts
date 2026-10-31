@@ -5,10 +5,10 @@ import http from 'node:http';
 import path from 'node:path';
 
 const PORT = Number(process.env.RIG_INSPECT_PORT) || 4180;
-const ROOT = path.resolve(__dirname, '..', '..'); // dist/scripts → raiz do repo
+const ROOT = path.resolve(__dirname, '..', '..'); // dist/scripts → apps/desktop
 
 const ROUTES: [prefix: string, dir: string][] = [
-  ['/skins/', path.join(ROOT, 'dev', 'skins')],
+  ['/skins/', path.resolve(ROOT, '..', '..', 'assets', 'skins')],
   ['/', path.join(ROOT, 'dist', 'scripts', 'rig-inspect')],
 ];
 
