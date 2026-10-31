@@ -1,6 +1,7 @@
-// Janela do painel de conversa (experimental): moldura normal, redimensionável, fora do
-// always-on-top. Fechar só esconde — a sessão do agente continua viva; o encerramento de
-// verdade é no "Encerrar sessão" ou ao sair do app.
+// Janela da interface da Tera: moldura normal, redimensionável, fora do always-on-top.
+// Uma só (abrir de novo traz pra frente). Fechar só esconde — a sessão do agente e o
+// que estava na tela continuam; o encerramento de verdade é no "Encerrar sessão" ou ao
+// sair do app. A personagem não depende desta janela.
 import { BrowserWindow } from 'electron';
 import path from 'node:path';
 import { PANEL_IPC, type BridgeEvent } from '@tera/agent-bridge/contract';
@@ -64,7 +65,7 @@ export class PanelWindow {
       height: 600,
       minWidth: 320,
       minHeight: 420,
-      title: 'Tera — conversa (experimental)',
+      title: 'Tera',
       frame: true,
       resizable: true,
       alwaysOnTop: false,

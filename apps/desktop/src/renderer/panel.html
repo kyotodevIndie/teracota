@@ -3,11 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
-  <title>Tera — conversa</title>
+  <title>Tera</title>
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
   <div id="sim-banner" data-testid="sim-banner" role="status" hidden>SIMULAÇÃO — nenhum agente real</div>
+  <section id="agents" data-testid="agents" aria-labelledby="agents-title">
+    <h2 id="agents-title">Agentes no terminal</h2>
+    <p class="note">Conectado, o agente faz a Tera reagir enquanto você trabalha nele.</p>
+    <ul id="agent-list"></ul>
+  </section>
+  <h2 class="section-title">Conversar por aqui</h2>
   <header id="setup">
     <div class="row">
       <select id="provider" data-testid="provider-select" aria-label="Agente"></select>

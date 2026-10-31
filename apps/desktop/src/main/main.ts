@@ -8,11 +8,11 @@ import { loadConfig } from './config';
 import type { Entity } from './entity';
 import { EntityManager } from './manager';
 import { buildMenu } from './menu';
-import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
+import { offerConnection, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
 import { startEventServer } from './server';
 import { loadFallbackSkin, loadSkin } from './skins';
-import { initAgentPanel } from './panel';
+import { getAgentPanel, initAgentPanel } from './panel';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -34,7 +34,8 @@ onEntity<[number, number]>(IPC.walkTo, (entity, x, y) => {
 onEntity(IPC.walkArrived, (entity) => entity.walkArrived());
 onEntity<[boolean]>(IPC.walkAllowed, (entity, allowed) => entity.setWalkAllowed(allowed));
 onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window: entity.win }));
-onEntity(IPC.clicked, () => onTeraClicked(manager));
+// clique na Tera (não arrasto, não carinho): abre a interface ou traz pra frente
+onEntity(IPC.clicked, () => getAgentPanel()?.show());
 ipcMain.handle(IPC.getSkin, () => loadSkin(manager?.skinId));
 ipcMain.handle(IPC.getFallbackSkin, () => loadFallbackSkin());
 
@@ -42,8 +43,33 @@ function createTray(): void {
   // tray@2x.png ao lado é usado automaticamente em telas com escala alta
   tray = new Tray(nativeImage.createFromPath(path.join(assetsDir(), 'icons', 'tray.png')));
   tray.setToolTip(`${APP_NAME} — ${CHARACTER_NAME}`);
-  tray.on('click', () => manager.setVisible(true));
+  // recuperar a Tera: mostra e traz de volta pra tela se ela estiver num lugar invisível
+  tray.on('click', () => {
+    manager.setVisible(true);
+    manager.ensureOnScreen();
+  });
   tray.on('right-click', () => tray?.popUpContextMenu(buildMenu(manager)));
+}
+
+// Linux com Wayland: o protocolo não deixa uma janela se posicionar nem ficar sempre no
+// topo, então a Tera não conseguiria passear nem ser arrastada. Roda via XWayland, que
+// permite as duas coisas (medido: em Wayland nativo as coordenadas da janela não valem).
+// A plataforma é escolhida antes deste script rodar (appendSwitch aqui chega tarde), então
+// o app se reabre uma vez com --ozone-platform=x11. Quem passar --ozone-platform decide.
+const relaunchingForX11 = needsX11Relaunch();
+if (relaunchingForX11) {
+  app.relaunch({
+    execPath: process.env.APPIMAGE ?? process.execPath, // AppImage: reabrir o arquivo, não o ponto de montagem
+    args: [...process.argv.slice(1), '--ozone-platform=x11'],
+  });
+  app.exit(0);
+}
+
+function needsX11Relaunch(): boolean {
+  if (process.platform !== 'linux' || process.env.XDG_SESSION_TYPE !== 'wayland') return false;
+  // o Electron põe --ozone-platform=wayland no próprio commandLine quando detecta sozinho,
+  // então só a linha de comando de verdade (argv) diz se alguém escolheu
+  return !process.argv.some((a) => a.startsWith('--ozone-platform'));
 }
 
 // Em desenvolvimento, nome próprio: config e trava de instância separadas do app
@@ -51,7 +77,9 @@ function createTray(): void {
 if (!app.isPackaged) app.setName(`${APP_NAME} Dev`);
 
 // Só uma cópia do app (a porta é uma só)
-if (!app.requestSingleInstanceLock()) {
+if (relaunchingForX11) {
+  // saindo: a cópia reaberta em XWayland assume
+} else if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.setAppUserModelId('com.teracota.app');
@@ -65,7 +93,7 @@ if (!app.requestSingleInstanceLock()) {
     app.dock?.hide(); // macOS: vive na barra de menus, sem ícone no Dock
     manager = new EntityManager(loadConfig());
     manager.start();
-    initAgentPanel({ onSignal: (s) => manager.handleSignal(s) }); // experimental: só com TERACOTA_AGENT_PANEL=1 em desenvolvimento
+    initAgentPanel({ onSignal: (s) => manager.handleSignal(s), manager });
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);
     void refreshSpeech();

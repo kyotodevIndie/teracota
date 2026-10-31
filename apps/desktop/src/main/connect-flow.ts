@@ -1,24 +1,40 @@
 // Conexão com agentes, genérica pra qualquer adapter que ofereça `connect`:
-// - "Conectar ao <agente>" no menu
-// - oferta na primeira vez: a Tera avisa que achou o agente e um clique nela conecta
+// - botão "Conectar" na interface da Tera (e o item no menu)
+// - oferta na primeira vez: a Tera avisa que achou o agente e convida a abrir a
+//   interface. O clique nela SEMPRE abre a interface; conectar é um botão lá dentro
+//   (mexer na configuração do agente precisa de um consentimento explícito)
 import { clipboard } from 'electron';
 import { ADAPTERS } from './integrations';
-import type { AgentAdapter } from './integrations/types';
+import type { AgentAdapter, ConnectResult } from './integrations/types';
 import type { EntityManager } from './manager';
 import { getPort } from '../shared/protocol';
-
-/** Por quanto tempo um clique na Tera ainda aceita a oferta */
-const OFFER_VALID_MS = 2 * 60 * 1000;
+import type { AgentConnection } from '../shared/app-panel';
 
 let connecting = false;
-let offer: { adapter: AgentAdapter; until: number } | null = null;
+
+/** Estado de cada agente conectável, pra interface */
+export async function connectionStatus(): Promise<AgentConnection[]> {
+  return Promise.all(ADAPTERS.filter((a) => a.connect).map(async (a): Promise<AgentConnection> => {
+    const c = a.connect!;
+    return {
+      id: a.id,
+      displayName: a.displayName,
+      label: c.label,
+      status: await c.status().catch(() => 'unavailable' as const),
+      speech: c.speech ? speechEnabled(a) : null,
+      openSessionsCommand: c.openSessions?.command ?? null,
+      manualCommand: c.manualCommand,
+    };
+  }));
+}
+
+export const adapterById = (id: string): AgentAdapter | undefined => ADAPTERS.find((a) => a.id === id && a.connect);
 
 /** Roda a conexão oferecida por um adapter e a Tera conta como foi */
-export async function connectAgent(manager: EntityManager, adapter: AgentAdapter): Promise<void> {
+export async function connectAgent(manager: EntityManager, adapter: AgentAdapter): Promise<ConnectResult | null> {
   const connector = adapter.connect;
-  if (!connector || connecting) return;
+  if (!connector || connecting) return null;
   connecting = true;
-  offer = null;
   manager.setVisible(true);
   manager.broadcast({ state: 'thinking', say: `Conectando ao ${adapter.displayName}... ⏳` });
   const result = await connector.run();
@@ -35,7 +51,7 @@ export async function connectAgent(manager: EntityManager, adapter: AgentAdapter
         ? `Pronto, conectei! Sessões já abertas: cola ${reload} nelas (já copiei) 😊`
         : 'Pronto, conectei! Sessões que já estavam abertas precisam ser reiniciadas 😊',
     });
-    return;
+    return result;
   }
   clipboard.writeText(connector.manualCommand);
   if (result.reason === 'failed') console.error(`[teracota] falha ao conectar ${adapter.id}:\n`, result.output);
@@ -46,6 +62,7 @@ export async function connectAgent(manager: EntityManager, adapter: AgentAdapter
       ? `Não achei o ${adapter.displayName} aqui 🤔 Copiei um comando: cola num terminal e aperta Enter!`
       : 'Algo deu errado 😣 Copiei o comando: cola num terminal pra ver o que houve.',
   });
+  return result;
 }
 
 /** Estado das "falas pelo agente" por adapter — cache, porque o menu é montado na hora e a CLI é lenta */
@@ -61,11 +78,16 @@ export async function refreshSpeech(): Promise<void> {
 export const speechEnabled = (adapter: AgentAdapter): boolean => speechOn.get(adapter.id) === true;
 
 /** Liga/desliga o agente falar pela Tera (ex.: MCP say/emote) */
-export async function toggleSpeech(manager: EntityManager, adapter: AgentAdapter): Promise<void> {
+export function toggleSpeech(manager: EntityManager, adapter: AgentAdapter): Promise<boolean | null> {
+  return setSpeech(manager, adapter, !speechEnabled(adapter));
+}
+
+/** Liga ou desliga as falas; devolve o estado final (null = não deu pra mudar agora) */
+export async function setSpeech(manager: EntityManager, adapter: AgentAdapter, turnOn: boolean): Promise<boolean | null> {
   const speech = adapter.connect?.speech;
-  if (!speech || connecting) return;
+  if (!speech || connecting) return null;
+  if (turnOn === speechEnabled(adapter)) return turnOn;
   connecting = true;
-  const turnOn = !speechEnabled(adapter);
   manager.setVisible(true);
   const result = await (turnOn ? speech.enable(getPort()) : speech.disable());
   connecting = false;
@@ -75,7 +97,7 @@ export async function toggleSpeech(manager: EntityManager, adapter: AgentAdapter
     manager.broadcast(turnOn
       ? { state: 'happy', duration: 9000, say: `Agora o ${adapter.displayName} pode falar por mim! Vale pras próximas sessões ✨` }
       : { state: 'idle', duration: 5000, say: `Combinado, o ${adapter.displayName} não fala mais por mim.` });
-    return;
+    return turnOn;
   }
   if (result.reason === 'failed') console.error(`[teracota] falas (${adapter.id}):\n`, result.output);
   manager.broadcast({
@@ -83,6 +105,7 @@ export async function toggleSpeech(manager: EntityManager, adapter: AgentAdapter
     duration: 6000,
     say: result.reason === 'not-found' ? `Não achei o ${adapter.displayName} aqui 🤔` : 'Não consegui mudar isso 😣',
   });
+  return speechEnabled(adapter);
 }
 
 /** Sessões que já estavam abertas: copia o comando que as conecta sem reiniciar */
@@ -100,8 +123,8 @@ export function connectOpenSessions(manager: EntityManager, adapter: AgentAdapte
 
 /**
  * Oferece a conexão (uma vez por instalação) se algum agente estiver instalado e
- * ainda não conectado. Não instala nada sozinha: espera o clique — mexer na
- * configuração do agente precisa do consentimento de quem usa.
+ * ainda não conectado. Não instala nada sozinha: só convida a abrir a interface, onde
+ * conectar é um botão — mexer na configuração do agente precisa de consentimento.
  */
 export async function offerConnection(manager: EntityManager): Promise<void> {
   if (manager.connectOffered) return;
@@ -114,20 +137,11 @@ export async function offerConnection(manager: EntityManager): Promise<void> {
     }
     if (status !== 'available') continue;
     manager.markConnectOffered();
-    offer = { adapter, until: Date.now() + OFFER_VALID_MS };
     manager.broadcast({
       state: 'attention',
       duration: 12_000,
-      say: `Achei o ${adapter.displayName}! Clica em mim que eu me conecto 🔌`,
+      say: `Achei o ${adapter.displayName}! Clica em mim pra abrir minha janela e conectar 🔌`,
     });
     return;
   }
-}
-
-/** Clique numa Tera: com oferta pendente, aceita e conecta */
-export function onTeraClicked(manager: EntityManager): void {
-  if (!offer) return;
-  const { adapter, until } = offer;
-  offer = null;
-  if (Date.now() <= until) void connectAgent(manager, adapter);
 }

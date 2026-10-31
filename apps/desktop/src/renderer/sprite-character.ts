@@ -6,6 +6,7 @@ import type { Point } from '../shared/ipc';
 import { HIT_MASK_SIZE, type Pose, type SkinInfo, type SkinSwing } from '@tera/character/skin';
 import type { Character, Motion } from './character';
 import type { Look } from './look';
+import { IDLE_FPS, MOTION_FPS } from './frame-clock';
 import { FEET_Y, WobbleMixer } from './wobble';
 
 /** Se a skin não tiver a pose, usa esta no lugar */
@@ -184,10 +185,10 @@ export class SpriteCharacter implements Character {
 
   /** Quadros por segundo do desenho: fluido quando está se movendo, econômico quando parada */
   targetFps(): number {
-    if (this.motion) return Number.POSITIVE_INFINITY;
+    if (this.motion) return MOTION_FPS;
     if (this.reduced) return 12;
     if (this.playing?.pose === 'sleep') return 15;
-    return 30;
+    return IDLE_FPS;
   }
 
   /** Desenha o frame atual + escala da animação + movimento procedural */

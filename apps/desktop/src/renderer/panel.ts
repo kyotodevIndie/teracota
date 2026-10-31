@@ -1,11 +1,14 @@
-// Renderer do painel de conversa (experimental). Todo texto entra via textContent —
-// nada de innerHTML nem markdown. Quem decide o estado é o main; aqui só se desenha.
+// Renderer da interface da Tera: agentes (conexão) + conversa (Agent Bridge). Todo texto
+// entra via textContent — nada de innerHTML nem markdown. Quem decide o estado é o main;
+// aqui só se desenha.
 import type {
   BridgeEvent, BridgeState, FolderPick, HistoryEntry, PanelResult, PendingPermission, ProviderDescriptor,
   SessionSnapshot,
 } from '@tera/agent-bridge/contract';
+import type { AgentConnection } from '../shared/app-panel';
 
 const api = window.teracotaPanel!;
+const appApi = window.teracotaApp!;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const providerSel = $<HTMLSelectElement>('provider');
@@ -296,9 +299,92 @@ function onEvent(e: BridgeEvent): void {
   render();
 }
 
+// ---------- agentes (conexão) ----------
+
+const agentList = $('agent-list');
+const STATUS_TEXT: Record<AgentConnection['status'], string> = {
+  connected: 'Conectado',
+  available: 'Instalado, não conectado',
+  unavailable: 'Não encontrado',
+};
+let agentBusy = false;
+
+function button(text: string, testid: string, onClick: () => Promise<void> | void): HTMLButtonElement {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.textContent = text;
+  b.dataset.testid = testid;
+  b.disabled = agentBusy;
+  b.onclick = () => void onClick();
+  return b;
+}
+
+/** Roda uma ação de conexão com os botões travados (conectar pode levar alguns segundos) */
+async function agentAction(fn: () => Promise<PanelResult<AgentConnection[] | null>>): Promise<void> {
+  agentBusy = true;
+  renderAgents(lastAgents);
+  const data = unwrap(await fn());
+  agentBusy = false;
+  if (Array.isArray(data)) lastAgents = data;
+  renderAgents(lastAgents);
+}
+
+let lastAgents: AgentConnection[] = [];
+
+function renderAgents(list: AgentConnection[]): void {
+  agentList.replaceChildren(...list.map((a) => {
+    const li = document.createElement('li');
+    li.className = 'agent';
+    li.dataset.testid = `agent-${a.id}`;
+    const name = document.createElement('span');
+    name.className = 'agent-name';
+    name.textContent = a.displayName;
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.dataset.status = a.status;
+    chip.textContent = STATUS_TEXT[a.status];
+    const actions = document.createElement('div');
+    actions.className = 'agent-actions';
+    if (a.status !== 'connected') {
+      // não encontrado: o fluxo copia o comando manual e a Tera explica
+      actions.append(button(a.status === 'available' ? a.label : 'Tentar conectar', 'connect', () => agentAction(() => appApi.connect(a.id))));
+    }
+    if (a.status === 'connected' && a.openSessionsCommand) {
+      const cmd = a.openSessionsCommand;
+      actions.append(button(`Sessões já abertas: copiar ${cmd}`, 'copy-open-sessions', async () => { unwrap(await appApi.copyOpenSessions(a.id)); }));
+    }
+    if (a.speech !== null) {
+      const label = document.createElement('label');
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = a.speech;
+      box.disabled = agentBusy;
+      box.dataset.testid = 'speech';
+      box.onchange = () => void agentAction(() => appApi.setSpeech(a.id, box.checked));
+      label.append(box, `Deixar o ${a.displayName} falar pela Tera`);
+      actions.append(label);
+    }
+    li.append(name, chip, actions);
+    return li;
+  }));
+}
+
+async function refreshAgents(): Promise<void> {
+  if (agentBusy) return;
+  const data = unwrap(await appApi.connections());
+  if (data) {
+    lastAgents = data;
+    renderAgents(data);
+  }
+}
+
 api.onEvent(onEvent);
-window.addEventListener('focus', () => { if (!session) void refreshProviders(); });
+window.addEventListener('focus', () => {
+  void refreshAgents();
+  if (!session) void refreshProviders();
+});
 void (async () => {
+  await refreshAgents();
   await refreshProviders();
   await hydrate();
 })();

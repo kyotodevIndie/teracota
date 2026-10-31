@@ -13,6 +13,7 @@ import { RigScene } from '@tera/character/scene';
 import type { Pose, SkinInfo } from '@tera/character/skin';
 import type { Character, Motion } from '../character';
 import type { Look } from '../look';
+import { IDLE_FPS, MOTION_FPS } from '../frame-clock';
 import { WobbleMixer } from '../wobble';
 
 /** Ponto por onde ela é segurada ao ser arrastada (fração da altura), igual às sprites */
@@ -143,10 +144,10 @@ export class RigCharacter implements Character {
 
   /** Mesmo critério das sprites: fluido em movimento, econômico parada */
   targetFps(): number {
-    if (this.motion || performance.now() < this.landUntil) return Number.POSITIVE_INFINITY;
+    if (this.motion || performance.now() < this.landUntil) return MOTION_FPS;
     if (this.reduced) return 12; // piscada e boca ainda precisam de quadros
     if (this.look.pose === 'sleep') return 15;
-    return 30;
+    return IDLE_FPS;
   }
 
   // ---------- desenho ----------

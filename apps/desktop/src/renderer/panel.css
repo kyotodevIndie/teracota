@@ -32,3 +32,16 @@ textarea { width: 100%; resize: none; margin-bottom: 6px; }
 #perm-detail { margin: 6px 0; padding: 6px; background: #14141a; border-radius: 6px; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow: auto; }
 #perm-warn { color: #ffcf70; font-weight: 600; margin-bottom: 6px; }
 .empty { margin: auto; color: #8d8da0; text-align: center; padding: 16px; }
+h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #9a9ab0; margin: 0; }
+.section-title { padding: 10px 10px 0; }
+#agents { padding: 10px; border-bottom: 1px solid #2d2d38; }
+#agents .note { margin: 4px 0 8px; }
+#agent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.agent { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px; border-radius: 8px; background: #23232d; }
+.agent-name { font-weight: 600; }
+.chip { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: #33334a; color: #c9c9da; }
+.chip[data-status="connected"] { background: #1f3d2c; color: #8fe0ad; }
+.chip[data-status="available"] { background: #3d3420; color: #f0cf7e; }
+.agent-actions { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
+.agent label { display: flex; gap: 5px; align-items: center; color: #c9c9da; }
+.agent code { font-family: ui-monospace, monospace; font-size: 11px; color: #c9c9da; }

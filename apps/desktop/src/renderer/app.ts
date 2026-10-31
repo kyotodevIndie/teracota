@@ -4,7 +4,7 @@ import type { Anim, Expression, StateName, CompanionEvent } from '../shared/prot
 import type { Pose } from '@tera/character/skin';
 import { Bubble } from './bubble';
 import type { Character } from './character';
-import { FrameClock } from './frame-clock';
+import { FrameClock, MOTION_FPS } from './frame-clock';
 import { PointerGesture } from './gesture';
 import { poseFor, type Look } from './look';
 import { Pendulum } from './pendulum';
@@ -173,23 +173,16 @@ const petting = new PetDetector(() => {
   react({ pose: 'happy', expression: 'happy', anim: 'breathe', say: pick(['Hehe ♥', 'Que carinho bom~', 'Nyaa~ 😊']), duration: 3000 });
 });
 
+/** Clique (não arrasto, não carinho): o main abre a interface; aqui ela só reage */
 function onClick(): void {
   api?.notifyClick();
   if (current === 'sleeping') {
     setState('idle');
-    react({ expression: 'surprised', anim: 'perk', say: pick(['Hã?! Tô acordada!', 'Só descansando o olho...']) });
+    react({ expression: 'surprised', anim: 'perk', say: pick(['Hã?! Tô acordada!', 'Oi! Só descansando o olho...']) });
     return;
   }
-  if (working) {
-    react({ expression: 'focused', say: pick(['Pera, tô trabalhando!', 'Quase lá...', 'Shh, concentrada 🤓']) });
-    return;
-  }
-  react(pick<Reaction>([
-    { expression: 'happy', anim: 'jump', say: 'Oi! 👋' },
-    { expression: 'surprised', anim: 'perk', say: 'Hm?' },
-    { expression: 'happy', anim: 'wave', say: 'Bora codar?' },
-    { expression: 'happy', anim: 'jump', say: 'Hehe' },
-  ]));
+  // a interface está abrindo: reação curta, sem balão pra não competir com a janela
+  react(working ? { expression: 'focused', anim: 'perk', duration: 900 } : { expression: 'happy', anim: 'perk', duration: 1200 });
 }
 
 const pendulum = new Pendulum();
@@ -335,7 +328,7 @@ const clock = new FrameClock((now) => {
   stepWalk(now);
   if (dragging) character.setSwing(reducedMotion() ? 0 : pendulum.step(now));
   character.tick(now);
-}, () => (walkPlan || dragging ? Number.POSITIVE_INFINITY : character.targetFps()));
+}, () => (walkPlan || dragging ? MOTION_FPS : character.targetFps()));
 
 async function init(): Promise<void> {
   character = await createCharacter();

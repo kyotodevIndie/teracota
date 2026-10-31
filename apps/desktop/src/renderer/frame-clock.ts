@@ -2,6 +2,11 @@
 // move a janela (passeio) e desenha o personagem JUNTOS, então o corpo e a translação
 // nunca ficam em ritmos diferentes.
 //
+/** fps em movimento (passeio, arrasto): em 120/144 Hz, um desenho a cada 2 quadros da tela */
+export const MOTION_FPS = 60;
+/** fps parada: respiração e piscada continuam fluidas, gastando bem menos */
+export const IDLE_FPS = 24;
+
 // Quando nada se move, desenha menos (economia de CPU/GPU), pulando um número inteiro
 // de quadros da tela: o intervalo entre desenhos fica sempre igual (sem tremido), seja
 // a tela de 60, 120 ou 144 Hz.

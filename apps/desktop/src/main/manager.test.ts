@@ -6,9 +6,10 @@ import type { AgentSignal } from './integrations/types';
 
 // ---------- dublês: Electron, janelas e disco ----------
 
+const screenOn = vi.fn();
 vi.mock('electron', () => ({
   app: { isPackaged: false, setLoginItemSettings: vi.fn() },
-  screen: { getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1040 } }) },
+  screen: { getPrimaryDisplay: () => ({ workArea: { x: 0, y: 0, width: 1920, height: 1040 } }), on: screenOn },
 }));
 
 vi.mock('./config', () => ({ saveConfig: vi.fn() }));
@@ -32,6 +33,8 @@ class FakeEntity {
   leave() { this.left = true; }
   destroy() { this.alive = false; }
   setVisible() {}
+  setMotion = vi.fn();
+  ensureOnScreen = vi.fn();
   setMoveMode() {}
   resetPosition() {}
   get last() { return this.sent.at(-1); }
@@ -283,5 +286,26 @@ describe('sessões do painel (Agent Bridge) e sessões externas', () => {
     expect(FakeEntity.all[1]!.left).toBe(true);
     expect(FakeEntity.all[0]!.left).toBe(false);
     expect(FakeEntity.all[0]!.sessionId).not.toBeNull();
+  });
+});
+
+describe('desktop: movimento reduzido e monitores', () => {
+  it('movimento reduzido vai pra config e pra todas as Teras, inclusive as que nascem depois', () => {
+    const manager = start({ entityMode: 'multi' });
+    manager.setReducedMotion(true);
+    expect(manager.reducedMotion).toBe(true);
+    expect(FakeEntity.all[0]!.setMotion).toHaveBeenCalledWith({ reduced: true });
+    manager.handleSignal(claude('s1', 'app'));
+    manager.handleSignal(claude('s2', 'outro'));
+    expect(FakeEntity.all.at(-1)!.setMotion).toHaveBeenCalledWith({ reduced: true });
+  });
+
+  it('monitor mudou: cada Tera confere se ficou visível', () => {
+    start();
+    const handlers = screenOn.mock.calls.map(([ev, fn]) => [ev, fn] as [string, () => void]);
+    expect(handlers.map(([ev]) => ev)).toEqual(expect.arrayContaining(['display-added', 'display-removed', 'display-metrics-changed']));
+    handlers.find(([ev]) => ev === 'display-removed')![1]();
+    vi.advanceTimersByTime(400);
+    expect(FakeEntity.all[0]!.ensureOnScreen).toHaveBeenCalled();
   });
 });

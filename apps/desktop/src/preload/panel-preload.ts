@@ -1,6 +1,7 @@
-// Preload do painel de conversa: API estreita; o renderer não enxerga ipcRenderer.
+// Preload da interface da Tera: APIs estreitas; o renderer não enxerga ipcRenderer.
 import { contextBridge, ipcRenderer } from 'electron';
 import { PANEL_IPC, type BridgeEvent, type PanelApi } from '@tera/agent-bridge/contract';
+import { APP_PANEL_IPC, type AppPanelApi } from '../shared/app-panel';
 
 const api: PanelApi = {
   listProviders: () => ipcRenderer.invoke(PANEL_IPC.listProviders),
@@ -16,3 +17,12 @@ const api: PanelApi = {
 };
 
 contextBridge.exposeInMainWorld('teracotaPanel', api);
+
+const appApi: AppPanelApi = {
+  connections: () => ipcRenderer.invoke(APP_PANEL_IPC.connections),
+  connect: (id) => ipcRenderer.invoke(APP_PANEL_IPC.connect, { id }),
+  setSpeech: (id, on) => ipcRenderer.invoke(APP_PANEL_IPC.setSpeech, { id, on }),
+  copyOpenSessions: (id) => ipcRenderer.invoke(APP_PANEL_IPC.copyOpenSessions, { id }),
+};
+
+contextBridge.exposeInMainWorld('teracotaApp', appApi);

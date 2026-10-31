@@ -1,5 +1,7 @@
-// Liga o painel de conversa (experimental): bridge, IPC e janela. Desligado por padrão —
-// só existe em desenvolvimento e com TERACOTA_AGENT_PANEL=1.
+// A interface da Tera (abre ao clicar nela): conexão com agentes + sessões do Agent
+// Bridge. Uma janela só, separada da janela da personagem; fechar só esconde.
+// O provider simulado (sem agente, sem custo) só existe em desenvolvimento, com
+// TERACOTA_AGENT_PANEL_SIM=1.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,20 +11,23 @@ import { createSimulatedProvider } from '@tera/agent-bridge';
 import { linkBridgeToCompanion } from '../bridge/companion-link';
 import type { AgentSignal } from '../integrations/types';
 import { BRIDGE_PROVIDERS } from '../integrations';
+import type { EntityManager } from '../manager';
+import { adapterById, connectAgent, connectionStatus, connectOpenSessions, setSpeech } from '../connect-flow';
+import { makeAppPanelHandlers } from './app-ipc';
 import { makePanelHandlers } from './ipc';
 import { resolvePickFolder } from './pick-folder';
 import { PanelWindow } from './window';
 
-export const agentPanelEnabled = (): boolean => process.env.TERACOTA_AGENT_PANEL === '1' && !app.isPackaged;
-
-/** Provider de simulação (sem agente, sem custo): só com o painel ligado e TERACOTA_AGENT_PANEL_SIM=1 */
-export const simEnabled = (): boolean => agentPanelEnabled() && process.env.TERACOTA_AGENT_PANEL_SIM === '1';
+/** Provider de simulação (sem agente, sem custo): só em desenvolvimento e com TERACOTA_AGENT_PANEL_SIM=1 */
+export const simEnabled = (): boolean => !app.isPackaged && process.env.TERACOTA_AGENT_PANEL_SIM === '1';
 
 const SIM_DIR_PREFIX = 'teracota-sim-';
 
 export interface AgentPanelOptions {
   /** Recebe os sinais da Tera derivados da sessão do painel (Companion Core) */
   onSignal?(signal: AgentSignal): void;
+  /** Pra conectar agentes pela interface (a Tera conta como foi) */
+  manager?: EntityManager;
 }
 
 export class AgentPanel {
@@ -59,6 +64,33 @@ export class AgentPanel {
       ipcMain.handle(channel, (event, payload: unknown) => handler(event, payload));
     }
 
+    const manager = opts.manager;
+    const appHandlers = makeAppPanelHandlers({
+      isPanelSender: (sender) => this.window.isSender((sender as { sender?: unknown } | null)?.sender),
+      connections: connectionStatus,
+      connect: async (id) => {
+        const adapter = adapterById(id);
+        if (!adapter || !manager) return false;
+        await connectAgent(manager, adapter);
+        return true;
+      },
+      setSpeech: async (id, on) => {
+        const adapter = adapterById(id);
+        if (!adapter || !manager) return false;
+        await setSpeech(manager, adapter, on);
+        return true;
+      },
+      copyOpenSessions: (id) => {
+        const adapter = adapterById(id);
+        if (!adapter || !manager) return false;
+        connectOpenSessions(manager, adapter);
+        return true;
+      },
+    });
+    for (const [channel, handler] of Object.entries(appHandlers)) {
+      ipcMain.handle(channel, (event, payload: unknown) => handler(event, payload));
+    }
+
     app.on('before-quit', () => {
       this.window.markQuitting();
       this.bridge.closeAll();
@@ -87,8 +119,7 @@ let current: AgentPanel | null = null;
 
 export const getAgentPanel = (): AgentPanel | null => current;
 
-export function initAgentPanel(opts: AgentPanelOptions = {}): AgentPanel | null {
-  if (!agentPanelEnabled()) return null;
+export function initAgentPanel(opts: AgentPanelOptions = {}): AgentPanel {
   if (!current) {
     current = new AgentPanel(opts);
     if (simEnabled()) current.show(); // homologação: abre já o painel

@@ -68,26 +68,11 @@ describe('oferta de conexão', () => {
     expect(m.connectOffered).toBe(true);
   });
 
-  it('o clique dentro do prazo aceita a oferta e conecta', async () => {
+  it('a oferta só convida a abrir a interface: nada é instalado sem o botão', async () => {
     const m = fakeManager();
     await flow.offerConnection(asManager(m));
-    flow.onTeraClicked(asManager(m));
     await vi.runAllTimersAsync();
-    expect(fake.runs).toBe(1);
-  });
-
-  it('clique depois do prazo não instala nada', async () => {
-    const m = fakeManager();
-    await flow.offerConnection(asManager(m));
-    vi.advanceTimersByTime(3 * 60 * 1000);
-    flow.onTeraClicked(asManager(m));
-    await vi.runAllTimersAsync();
-    expect(fake.runs).toBe(0);
-  });
-
-  it('clique sem oferta pendente não faz nada', async () => {
-    flow.onTeraClicked(asManager(fakeManager()));
-    await vi.runAllTimersAsync();
+    expect(m.said.at(-1)?.say).toContain('abrir minha janela');
     expect(fake.runs).toBe(0);
   });
 
@@ -115,9 +100,19 @@ describe('oferta de conexão', () => {
 });
 
 describe('conectar', () => {
+  it('estado dos agentes pra interface', async () => {
+    fake.status = 'available';
+    expect(await flow.connectionStatus()).toEqual([{
+      id: 'agente-x', displayName: 'Agente X', label: 'Conectar ao Agente X', status: 'available',
+      speech: false, openSessionsCommand: '/recarregar', manualCommand: 'agente-x connect',
+    }]);
+    expect(flow.adapterById('agente-x')).toBe(adapter);
+    expect(flow.adapterById('nada')).toBeUndefined();
+  });
+
   it('sucesso: já copia o comando pras sessões abertas', async () => {
     const m = fakeManager();
-    await flow.connectAgent(asManager(m), adapter);
+    expect(await flow.connectAgent(asManager(m), adapter)).toEqual({ ok: true });
     expect(clipboard.text).toBe('/recarregar');
     expect(m.said.at(-1)).toMatchObject({ state: 'happy' });
     expect(m.said.at(-1)?.say).toContain('/recarregar');
@@ -148,5 +143,7 @@ describe('falas do agente (opcional)', () => {
     expect(flow.speechEnabled(adapter)).toBe(true);
     await flow.toggleSpeech(asManager(m), adapter);
     expect(flow.speechEnabled(adapter)).toBe(false);
+    expect(await flow.setSpeech(asManager(m), adapter, false)).toBe(false); // já desligado: não roda nada
+    expect(await flow.setSpeech(asManager(m), adapter, true)).toBe(true);
   });
 });

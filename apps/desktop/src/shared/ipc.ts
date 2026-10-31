@@ -91,7 +91,7 @@ export interface CompanionApi {
   walkTo(x: number, y: number): void;
   /** Chegou ao fim do trecho */
   walkArrived(): void;
-  /** Clicaram na Tera (o main usa pra aceitar ofertas, ex.: conectar a um agente) */
+  /** Clicaram na Tera (o main abre a interface) */
   notifyClick(): void;
 }
 

@@ -15,6 +15,8 @@ export interface Config {
   connectOffered?: boolean;
   x?: number;
   y?: number;
+  /** Movimento reduzido pedido no menu */
+  reducedMotion?: boolean;
 }
 
 const file = () => path.join(app.getPath('userData'), 'config.json');
@@ -40,6 +42,7 @@ export function loadConfig(): Config {
       ...(raw.onboarded === true && { onboarded: true }),
       ...(raw.connectOffered === true && { connectOffered: true }),
       ...(typeof raw.x === 'number' && typeof raw.y === 'number' && { x: raw.x, y: raw.y }),
+      ...(raw.reducedMotion === true && { reducedMotion: true }),
       // `ui`, `companion` e `companionMuted` eram do Mini Companion (removido): são descartados,
       // e quem estava no modo mini volta pra Tera completa
     };

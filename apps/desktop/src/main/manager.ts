@@ -46,6 +46,10 @@ export class EntityManager {
 
   start(): void {
     this.spawnHome();
+    // monitor desligado/ligado, resolução ou escala mudou: confere onde cada Tera ficou
+    for (const ev of ['display-added', 'display-removed', 'display-metrics-changed'] as const) {
+      screen.on(ev as 'display-added', () => setTimeout(() => this.ensureOnScreen(), 300));
+    }
     if (!this.config.onboarded) {
       this.updateConfig({ onboarded: true });
       // primeira vez: já abre junto com o sistema (dá pra desligar no menu).
@@ -165,6 +169,21 @@ export class EntityManager {
     for (const e of this.entities) e.setMoveMode(mode, true);
   }
 
+  /** Movimento reduzido pedido no menu (o renderer também respeita o do sistema) */
+  get reducedMotion(): boolean {
+    return this.config.reducedMotion === true;
+  }
+
+  setReducedMotion(reduced: boolean): void {
+    this.updateConfig({ reducedMotion: reduced });
+    for (const e of this.entities) e.setMotion({ reduced });
+  }
+
+  /** Monitores mudaram (desligado, resolução, escala): quem ficou fora volta pra área útil */
+  ensureOnScreen(): void {
+    for (const e of this.entities) e.ensureOnScreen();
+  }
+
   // ---------- roteamento ----------
 
   /** Etiqueta da sessão: o projeto, ou "Agente · projeto" quando há agentes diferentes abertos */
@@ -269,6 +288,7 @@ export class EntityManager {
       onSettle: persist ? ({ x, y }) => this.updateConfig({ x, y }) : undefined,
     });
     entity.win.on('closed', () => { this.entities = this.entities.filter((e) => e !== entity); });
+    if (this.reducedMotion) entity.setMotion({ reduced: true });
     this.entities.push(entity);
     return entity;
   }

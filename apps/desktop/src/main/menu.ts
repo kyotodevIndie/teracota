@@ -9,10 +9,10 @@ import { MAX_ENTITIES, type EntityManager } from './manager';
 import { listSkins, loadSkin } from './skins';
 import { getAgentPanel } from './panel';
 
-/** Só com a flag do painel de conversa ligada (desenvolvimento) */
+/** A interface da Tera (o mesmo que clicar nela) */
 function panelItems(): MenuItemConstructorOptions[] {
   const panel = getAgentPanel();
-  return panel ? [{ label: 'Conversar (experimental)', click: () => panel.show() }, { type: 'separator' }] : [];
+  return panel ? [{ label: `Abrir a ${CHARACTER_NAME}…`, click: () => panel.show() }, { type: 'separator' }] : [];
 }
 
 function skinItems(manager: EntityManager): MenuItemConstructorOptions[] {
@@ -57,6 +57,10 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
     { type: 'separator' },
     { label: 'Passear pela tela', type: 'radio', checked: manager.moveMode === 'roam', click: () => manager.setMoveMode('roam') },
     { label: 'Ficar parada', type: 'radio', checked: manager.moveMode === 'stay', click: () => manager.setMoveMode('stay') },
+    {
+      label: 'Reduzir movimento', type: 'checkbox', checked: manager.reducedMotion,
+      click: () => manager.setReducedMotion(!manager.reducedMotion),
+    },
     { type: 'separator' },
     { label: `Uma ${CHARACTER_NAME} só`, type: 'radio', checked: manager.mode === 'single', click: () => manager.setEntityMode('single') },
     {
