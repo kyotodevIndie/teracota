@@ -7,30 +7,7 @@ import { ADAPTERS } from './integrations';
 import type { Entity } from './entity';
 import { MAX_ENTITIES, type EntityManager } from './manager';
 import { listSkins, loadSkin } from './skins';
-import { getCompanion } from './companion';
 import { getAgentPanel } from './panel';
-import { SCENARIOS, runScenario, type Scenario } from './companion/simulator';
-import { setUiMode, uiMode } from './ui-mode';
-
-function uiItems(): MenuItemConstructorOptions[] {
-  return [
-    { label: `${CHARACTER_NAME} completa`, type: 'radio', checked: uiMode() === 'classic', click: () => setUiMode('classic') },
-    { label: 'Mini (experimental)', type: 'radio', checked: uiMode() === 'mini', click: () => setUiMode('mini') },
-  ];
-}
-
-/** Só em desenvolvimento: eventos simulados pro Mini Companion */
-function simulatorItems(): MenuItemConstructorOptions[] {
-  const companion = getCompanion();
-  if (app.isPackaged || !companion) return [];
-  return [{
-    label: 'Simular (mini)',
-    submenu: (Object.entries(SCENARIOS) as [Scenario, string][]).map(([id, label]) => ({
-      label,
-      click: () => runScenario(companion.controller, id),
-    })),
-  }];
-}
 
 /** Só com a flag do painel de conversa ligada (desenvolvimento) */
 function panelItems(): MenuItemConstructorOptions[] {
@@ -87,14 +64,11 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
       click: () => manager.setEntityMode('multi'),
     },
     { type: 'separator' },
-    { label: 'Visual', submenu: uiItems() },
     { label: 'Skin', submenu: skinItems(manager) },
     {
       label: 'Voltar pro canto',
       click: () => {
-        const companion = getCompanion();
-        if (companion) companion.window.resetPosition();
-        else if (entity) entity.resetPosition();
+        if (entity) entity.resetPosition();
         else manager.resetPositions();
       },
     },
@@ -109,7 +83,6 @@ export function buildMenu(manager: EntityManager, entity?: Entity): Menu {
       click: () => app.setLoginItemSettings({ openAtLogin: !autoStart }),
     },
     { type: 'separator' },
-    ...simulatorItems(),
     ...(!app.isPackaged && entity
       ? [
         { label: 'Recarregar', click: () => entity.win.reload() },

@@ -122,9 +122,3 @@ export function loadSkin(id: string | undefined): SkinInfo | null {
 export function loadFallbackSkin(): SkinInfo | null {
   return readSkin(ORIGINAL_SKIN_ID);
 }
-
-/** Pra quem só sabe desenhar frames (ex.: o Mini Companion): rig selecionado → skin original */
-export function loadSpriteSkin(id: string | undefined): SkinInfo | null {
-  const skin = loadSkin(id);
-  return skin?.rig ? loadFallbackSkin() : skin;
-}

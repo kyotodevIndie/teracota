@@ -39,26 +39,9 @@ export class EntityManager {
   }
 
   private visible = true;
-  /** Mini Companion ativo: as Teras completas ficam escondidas (mas continuam recebendo eventos) */
-  private suppressed = false;
-  /** Avisado quando o app é escondido/mostrado (bandeja, menu) */
-  onVisibilityChange?: (visible: boolean) => void;
 
   get isVisible(): boolean {
     return this.visible;
-  }
-
-  get settings(): Readonly<Config> {
-    return this.config;
-  }
-
-  saveSettings(patch: Partial<Config>): void {
-    this.updateConfig(patch);
-  }
-
-  setSuppressed(suppressed: boolean): void {
-    this.suppressed = suppressed;
-    for (const e of this.entities) e.setVisible(this.visible && !suppressed);
   }
 
   start(): void {
@@ -87,8 +70,7 @@ export class EntityManager {
 
   setVisible(visible: boolean): void {
     this.visible = visible;
-    for (const e of this.entities) e.setVisible(visible && !this.suppressed);
-    this.onVisibilityChange?.(visible);
+    for (const e of this.entities) e.setVisible(visible);
   }
 
   /** Traz todas pro canto (ex.: se alguma se perdeu num monitor desligado) */
@@ -281,7 +263,7 @@ export class EntityManager {
     const entity = new Entity({
       position,
       identity,
-      visible: this.visible && !this.suppressed,
+      visible: this.visible,
       moveMode: this.moveMode,
       // só a primeira Tera lembra a posição entre execuções
       onSettle: persist ? ({ x, y }) => this.updateConfig({ x, y }) : undefined,

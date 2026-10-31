@@ -11,10 +11,8 @@ import { buildMenu } from './menu';
 import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
 import { startEventServer } from './server';
-import { loadFallbackSkin, loadSkin, loadSpriteSkin } from './skins';
-import { registerCompanionIpc } from './companion';
+import { loadFallbackSkin, loadSkin } from './skins';
 import { initAgentPanel } from './panel';
-import { initUi } from './ui-mode';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -35,8 +33,6 @@ onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window:
 onEntity(IPC.clicked, () => onTeraClicked(manager));
 ipcMain.handle(IPC.getSkin, () => loadSkin(manager?.skinId));
 ipcMain.handle(IPC.getFallbackSkin, () => loadFallbackSkin());
-// o Mini desenha frames <img>: com um rig selecionado, usa a skin de sprites (P-11 do rig)
-registerCompanionIpc(() => loadSpriteSkin(manager?.skinId));
 
 function createTray(): void {
   // tray@2x.png ao lado é usado automaticamente em telas com escala alta
@@ -66,7 +62,6 @@ if (!app.requestSingleInstanceLock()) {
     manager = new EntityManager(loadConfig());
     manager.start();
     initAgentPanel({ onSignal: (s) => manager.handleSignal(s) }); // experimental: só com TERACOTA_AGENT_PANEL=1 em desenvolvimento
-    initUi(manager, () => buildMenu(manager));
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);
     void refreshSpeech();

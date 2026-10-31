@@ -2,7 +2,7 @@
 import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import type { EntityMode, MoveMode, Point } from '../shared/ipc';
+import type { EntityMode, MoveMode } from '../shared/ipc';
 
 export interface Config {
   moveMode: MoveMode;
@@ -15,12 +15,6 @@ export interface Config {
   connectOffered?: boolean;
   x?: number;
   y?: number;
-  /** Visual: Tera completa (padrão) ou Mini Companion (experimental) */
-  ui?: 'classic' | 'mini';
-  /** Posição do quadrado do Mini Companion */
-  companion?: Point;
-  /** Mini Companion: notificações não críticas não expandem sozinhas */
-  companionMuted?: boolean;
 }
 
 const file = () => path.join(app.getPath('userData'), 'config.json');
@@ -46,9 +40,8 @@ export function loadConfig(): Config {
       ...(raw.onboarded === true && { onboarded: true }),
       ...(raw.connectOffered === true && { connectOffered: true }),
       ...(typeof raw.x === 'number' && typeof raw.y === 'number' && { x: raw.x, y: raw.y }),
-      ...(raw.ui === 'mini' && { ui: 'mini' as const }),
-      ...(typeof raw.companion?.x === 'number' && typeof raw.companion?.y === 'number' && { companion: { x: raw.companion.x, y: raw.companion.y } }),
-      ...(raw.companionMuted === true && { companionMuted: true }),
+      // `ui`, `companion` e `companionMuted` eram do Mini Companion (removido): são descartados,
+      // e quem estava no modo mini volta pra Tera completa
     };
   } catch {
     return { moveMode: 'roam', entityMode: 'single' };
