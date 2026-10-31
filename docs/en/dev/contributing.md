@@ -19,15 +19,16 @@ You need **Node.js 22+** and **Windows**.
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git
 cd teracota
-npm install
-npm start          # build and launch the app ("Teracota Dev")
-npm run check      # typecheck + lint + tests (run before opening a PR)
-npm run dist       # build the installer into release/
-npm run docs:dev   # this site, at http://localhost:5173/teracota/
+corepack enable
+pnpm install
+pnpm start          # build and launch the app ("Teracota Dev")
+pnpm check        # typecheck + lint + tests (run before opening a PR)
+pnpm dist:win     # build the installer into apps/desktop/release/
+pnpm docs:dev   # this site, at http://localhost:5173/teracota/
 ```
 
 When running from source, the app is named **Teracota Dev** and can run alongside the
-installed Teracota. Only the port is shared: use `TERACOTA_PORT=7788 npm start` if the
+installed Teracota. Only the port is shared: use `TERACOTA_PORT=7788 pnpm start` if the
 installed one is running.
 
 ## Where to start
@@ -43,7 +44,7 @@ installed one is running.
 
 ## Rules enforced by CI
 
-- `npm run check` must pass: typecheck, lint (Biome) and tests (Vitest).
+- `pnpm check` must pass: typecheck, lint (Biome) and tests (Vitest).
 - **Nothing agent-specific outside `src/main/integrations/<agent>/`.** A test enforces it.
 - **Never get in the agent's way:** integrations fail silently when the app is closed.
 

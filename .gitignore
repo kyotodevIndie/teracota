@@ -12,3 +12,6 @@ release/
 docs/.vitepress/cache/
 docs/.vitepress/dist/
 /.vitepress/
+
+# relatórios do vitest (--reporter=json)
+.vitest/

@@ -80,8 +80,8 @@ Pacotes no formato `desktop-pet-sprite-pack-v1` (grades 2×2 com `manifest.json`
 ser convertidos:
 
 ```bash
-npm run build
-npm run import-skin -- <pasta-do-pacote> <id> "<Nome>"
+pnpm build
+pnpm import-skin <pasta-do-pacote> <id> "<Nome>"
 ```
 
 ## Contribuindo com uma skin

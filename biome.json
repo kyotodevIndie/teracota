@@ -1,10 +1,19 @@
 {
 	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"files": {
-		"includes": ["src/**", "scripts/**", "build.mjs"]
+		"includes": [
+			"apps/desktop/src/**",
+			"apps/desktop/scripts/**",
+			"apps/desktop/build.mjs",
+			"packages/*/src/**"
+		]
 	},
-	"formatter": { "enabled": false },
-	"assist": { "enabled": false },
+	"formatter": {
+		"enabled": false
+	},
+	"assist": {
+		"enabled": false
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {

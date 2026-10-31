@@ -32,14 +32,15 @@ Passo a passo, comandos manuais e desinstalação: [guia de instalação](docs/g
 | **Desenvolvimento** | [Contribuindo](CONTRIBUTING.md) · [Arquitetura](docs/dev/architecture.md) · [Integrações com agentes](docs/dev/integrations.md) · [API local](docs/dev/api.md) · [Criando skins](docs/dev/skins.md) |
 | **Projeto** | [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Segurança](SECURITY.md) · [Código de Conduta](CODE_OF_CONDUCT.md) |
 
-A pasta `docs/` também é o site do projeto (VitePress): `npm run docs:dev`.
+A pasta `docs/` também é o site do projeto (VitePress): `pnpm docs:dev`.
 
 ## Desenvolvimento
 
 ```bash
-npm install
-npm start          # builda e abre ("Teracota Dev")
-npm run check      # typecheck + lint + testes
+corepack enable     # ativa o pnpm na versão do packageManager
+pnpm install
+pnpm start          # builda e abre ("Teracota Dev")
+pnpm check          # typecheck + lint + testes
 ```
 
 Detalhes no [CONTRIBUTING.md](CONTRIBUTING.md).

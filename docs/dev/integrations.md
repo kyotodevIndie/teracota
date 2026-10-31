@@ -186,7 +186,7 @@ Se as respostas forem insuficientes, **não implementar ainda**. Nesse meio-temp
    fechado. Evite exigir Node ou Python na máquina do usuário.
 7. Se o agente tiver como instalar a integração por CLI, implemente `connect`: o menu
    ganha "Conectar ao &lt;agente&gt;" sozinho.
-8. Escreva testes de `toSignal` (veja `claude-code/adapter.test.ts`) e rode `npm run check`.
+8. Escreva testes de `toSignal` (veja `apps/desktop/src/main/integrations/claude-code/adapter.test.ts`) e rode `pnpm check`.
 
 ## API local universal
 

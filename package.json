@@ -1,79 +1,35 @@
 {
-  "name": "teracota",
-  "version": "0.1.0",
-  "description": "Tera, uma personagem de desktop que acompanha o seu trabalho no Claude Code",
-  "main": "dist/main.js",
+  "name": "tera",
   "private": true,
+  "description": "Tera, uma personagem de desktop que acompanha o seu trabalho no Claude Code",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "build": "node build.mjs",
-    "watch": "node build.mjs --watch",
-    "typecheck": "tsc --noEmit",
-    "start": "node build.mjs && electron .",
-    "demo": "node dist/scripts/demo.js",
-    "import-skin": "node dist/scripts/import-skin.js",
-    "pack": "node build.mjs && electron-builder --win --dir",
-    "dist": "node build.mjs && electron-builder --win",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "pnpm --filter @tera/desktop start",
+    "start": "pnpm --filter @tera/desktop start",
+    "build": "pnpm --filter @tera/desktop build",
+    "watch": "pnpm --filter @tera/desktop watch",
+    "demo": "pnpm --filter @tera/desktop demo",
+    "import-skin": "pnpm --filter @tera/desktop import-skin",
+    "typecheck": "pnpm -r typecheck",
     "lint": "biome lint",
-    "check": "npm run typecheck && npm run lint && npm run test",
+    "test": "pnpm -r test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "pack": "pnpm --filter @tera/desktop pack",
+    "dist": "pnpm --filter @tera/desktop dist",
+    "pack:win": "pnpm --filter @tera/desktop pack:win",
+    "dist:win": "pnpm --filter @tera/desktop dist:win",
+    "pack:linux": "pnpm --filter @tera/desktop pack:linux",
+    "audit:prod": "pnpm audit --prod",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "0.3.289",
     "@biomejs/biome": "^2.5.14",
-    "@types/node": "^26.6.2",
-    "electron": "^44.4.5",
-    "electron-builder": "^26.15.3",
-    "esbuild": "^0.28.2",
-    "typescript": "^7.0.2",
-    "vitepress": "^1.6.4",
-    "vitest": "^5.0.2"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "zod": "4.6.7"
-  },
-  "productName": "Teracota",
-  "build": {
-    "appId": "com.teracota.app",
-    "productName": "Teracota",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "!dist/**/*.map",
-      "!dist/scripts/**",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "assets",
-        "to": "assets"
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "assets/icons/icon.png"
-    },
-    "nsis": {
-      "oneClick": true,
-      "perMachine": false,
-      "createDesktopShortcut": true,
-      "shortcutName": "Teracota",
-      "runAfterFinish": true
-    },
-    "publish": null
+    "vitepress": "^1.6.4"
   },
   "author": "Thallys Morais",
   "license": "MIT",

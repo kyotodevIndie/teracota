@@ -18,15 +18,16 @@ Precisa de **Node.js 22+** e **Windows**.
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git
 cd teracota
-npm install
-npm start          # builda e abre o app ("Teracota Dev")
-npm run check      # typecheck + lint + testes (rode antes de abrir um PR)
-npm run dist       # gera o instalador em release/
-npm run docs:dev   # este site, em http://localhost:5173/teracota/
+corepack enable
+pnpm install
+pnpm start          # builda e abre o app ("Teracota Dev")
+pnpm check        # typecheck + lint + testes (rode antes de abrir um PR)
+pnpm dist:win     # gera o instalador em apps/desktop/release/
+pnpm docs:dev   # este site, em http://localhost:5173/teracota/
 ```
 
 Rodando pelo código, o app se chama **Teracota Dev** e convive com o Teracota instalado.
-Só a porta é a mesma: use `TERACOTA_PORT=7788 npm start` se o instalado estiver aberto.
+Só a porta é a mesma: use `TERACOTA_PORT=7788 pnpm start` se o instalado estiver aberto.
 
 ## Por onde começar
 
@@ -41,7 +42,7 @@ Só a porta é a mesma: use `TERACOTA_PORT=7788 npm start` se o instalado estive
 
 ## Regras que o CI cobra
 
-- `npm run check` precisa passar: typecheck, lint (Biome) e testes (Vitest).
+- `pnpm check` precisa passar: typecheck, lint (Biome) e testes (Vitest).
 - **Nada específico de um agente fora de `src/main/integrations/<agente>/`.** Um teste
   garante isso.
 - **Nunca atrapalhar o agente:** integrações falham em silêncio quando o app está fechado.

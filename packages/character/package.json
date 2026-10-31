@@ -1,0 +1,22 @@
+{
+  "name": "@tera/character",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modelo da personagem: manifestos de skin e de rig 2D, matrizes, cena e controladores (sem Electron)",
+  "type": "module",
+  "exports": {
+    "./rig": "./src/rig.ts",
+    "./skin": "./src/skin.ts",
+    "./scene": "./src/scene.ts",
+    "./controllers": "./src/controllers.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

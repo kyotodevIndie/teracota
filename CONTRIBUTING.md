@@ -28,31 +28,32 @@ Participando, você concorda com o [Código de Conduta](CODE_OF_CONDUCT.md).
 
 ## Rodando o projeto
 
-Precisa de **Node.js 22+** e **Windows** (é a plataforma suportada por enquanto;
-macOS e Linux estão no roadmap — ajuda bem-vinda).
+Precisa de **Node.js 24+** e **pnpm** (`corepack enable` ativa a versão do `packageManager`).
+O instalador é gerado pra **Windows**; em Linux o app roda em desenvolvimento (veja a
+matriz de plataformas em `PROJECT_STATUS_REPORT.md`).
 
 ```bash
 git clone https://github.com/kyotodevIndie/teracota.git
 cd teracota
-npm install
-npm start
+pnpm install
+pnpm start
 ```
 
 A Tera aparece no canto da tela e um ícone surge na bandeja do sistema.
 
 Rodando pelo código, o app se chama **"Teracota Dev"**, com configuração própria, e
 convive com o Teracota instalado. Só a porta é a mesma: se o instalado estiver aberto,
-use outra, como `TERACOTA_PORT=7788 npm start`.
+use outra, como `TERACOTA_PORT=7788 pnpm start`.
 
 | Comando | O que faz |
 |---|---|
-| `npm start` | Builda e abre o app |
-| `npm run watch` | Rebuild automático; depois é só botão direito na Tera → **Recarregar** |
-| `npm run check` | Typecheck + lint + testes — **rode antes de abrir um PR** |
-| `npm test` | Só os testes (`npm run test:watch` pra deixar rodando) |
-| `npm run demo` | Com o app aberto, passa por todos os estados da Tera |
-| `npm run pack` | Gera o app desempacotado em `release/win-unpacked` |
-| `npm run dist` | Gera o instalador em `release/` |
+| `pnpm start` | Builda e abre o app |
+| `pnpm watch` | Rebuild automático; depois é só botão direito na Tera → **Recarregar** |
+| `pnpm check` | Typecheck + lint + testes — **rode antes de abrir um PR** |
+| `pnpm test` | Só os testes (de todos os pacotes) |
+| `pnpm demo` | Com o app aberto, passa por todos os estados da Tera |
+| `pnpm pack:win` / `pnpm pack:linux` | Gera o app desempacotado em `apps/desktop/release/` |
+| `pnpm dist:win` | Gera o instalador do Windows em `apps/desktop/release/` |
 
 Pra testar reações sem nenhum agente, mande eventos direto pro app pela
 [API local](docs/dev/api.md):
@@ -128,7 +129,7 @@ Sem adapter oficial, dá pra integrar qualquer ferramenta pela [API local](docs/
 - **TypeScript estrito.** Nada de `any`; prefira tipos do `src/shared/`.
 - **Siga o estilo do arquivo ao redor.** Não usamos formatador automático (ele
   desfaria o alinhamento das tabelas de estados e expressões); o `.editorconfig`
-  cuida do básico e o **Biome** (`npm run lint`) aponta problemas.
+  cuida do básico e o **Biome** (`pnpm lint`) aponta problemas.
 - **Nomes no código em inglês, comentários em português.** Comente o *porquê*,
   não o *o quê*.
 - **Nada de dependência nova sem motivo forte** — o app fica aberto o dia todo;
@@ -155,7 +156,7 @@ Mexeu em algo visual? Descreva no PR como testou — um gif vale ouro.
 
    A detecção dependia só dos eventos repassados pelo setIgnoreMouseEvents...
    ```
-3. Rode `npm run check`.
+3. Rode `pnpm check`.
 4. Abra o PR preenchendo o template. O CI roda typecheck, lint, testes e build.
 5. Um mantenedor revisa; pode ser que peça ajustes — é normal e faz parte. 💛
 

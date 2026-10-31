@@ -18,19 +18,20 @@ jobs:
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4 # versão vem do packageManager do package.json
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
       - name: Site (VitePress) compila sem links quebrados
-        run: npm run docs:build
+        run: pnpm docs:build
       - name: Manifestos do plugin são JSON válido
         run: |
-          for f in plugin/.claude-plugin/plugin.json plugin/hooks/hooks.json plugin/.mcp.json .claude-plugin/marketplace.json assets/skins/*/skin.json; do
+          for f in plugin/.claude-plugin/plugin.json plugin/hooks/hooks.json .claude-plugin/marketplace.json assets/skins/*/skin.json apps/desktop/dev/skins/*/skin.json; do
             node -e "JSON.parse(require('fs').readFileSync('$f','utf8'))" && echo "ok  $f"
           done

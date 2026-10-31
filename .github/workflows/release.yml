@@ -18,21 +18,22 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4 # versão vem do packageManager do package.json
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: A tag bate com a versão do package.json e do plugin
         shell: bash
         run: |
-          app=$(node -p "require('./package.json').version")
+          app=$(node -p "require('./apps/desktop/package.json').version")
           plugin=$(node -p "require('./plugin/.claude-plugin/plugin.json').version")
           if [ "v$app" != "$GITHUB_REF_NAME" ] || [ "v$plugin" != "$GITHUB_REF_NAME" ]; then
             echo "::error::tag $GITHUB_REF_NAME, mas package.json está em $app e plugin.json em $plugin"; exit 1
           fi
-      - run: npm run check
-      - run: npm run dist
+      - run: pnpm check
+      - run: pnpm dist:win
       - name: Notas da release
         shell: bash
         run: |
@@ -43,7 +44,7 @@ jobs:
             echo ""
             echo "### SHA-256"
             echo '```'
-            (cd release && sha256sum *.exe)
+            (cd apps/desktop/release && sha256sum *.exe)
             echo '```'
           } >> release-body.md
       - uses: softprops/action-gh-release@v2
@@ -54,5 +55,5 @@ jobs:
           body_path: release-body.md
           generate_release_notes: true
           files: |
-            release/*.exe
-            release/*.blockmap
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.blockmap

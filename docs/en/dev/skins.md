@@ -79,8 +79,8 @@ Packs in the `desktop-pet-sprite-pack-v1` format (2×2 sheets with a `manifest.j
 be converted:
 
 ```bash
-npm run build
-npm run import-skin -- <pack-folder> <id> "<Name>"
+pnpm build
+pnpm import-skin <pack-folder> <id> "<Name>"
 ```
 
 ## Contributing a skin
