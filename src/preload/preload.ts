@@ -3,6 +3,7 @@ import { IPC, type CompanionApi } from '../shared/ipc';
 
 const api: CompanionApi = {
   getSkin: () => ipcRenderer.invoke(IPC.getSkin),
+  getFallbackSkin: () => ipcRenderer.invoke(IPC.getFallbackSkin),
   onEvent: (cb) => { ipcRenderer.on(IPC.event, (_e, event) => cb(event)); },
   onWalk: (cb) => { ipcRenderer.on(IPC.walk, (_e, info) => cb(info)); },
   onCursor: (cb) => { ipcRenderer.on(IPC.cursor, (_e, p) => cb(p)); },

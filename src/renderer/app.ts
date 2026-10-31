@@ -7,6 +7,7 @@ import type { Character } from './character';
 import { poseFor, type Look } from './look';
 import { Pendulum } from './pendulum';
 import { PetDetector } from './pet';
+import { RigCharacter } from './rig/rig-character';
 import { SpriteCharacter } from './sprite-character';
 import { SLEEP_AFTER, STATE_DEFS, TOOL_STATE_TIMEOUT } from './states';
 import { SvgCharacter } from './svg-character';
@@ -258,15 +259,30 @@ function bindMouse(): void {
 
 // ---------- inicialização ----------
 
+function resetCharacterEl(): void {
+  characterEl.removeAttribute('style');
+  characterEl.className = '';
+  characterEl.replaceChildren();
+}
+
+// Ordem: skin escolhida → (se for um rig e falhar) a skin original da Tera → desenho SVG
 async function createCharacter(): Promise<Character> {
-  const skin = await api?.getSkin().catch(() => null);
-  if (skin) {
+  let skin = await api?.getSkin().catch(() => null);
+  if (skin?.rig) {
+    try {
+      return await RigCharacter.create(characterEl, skin);
+    } catch (err) {
+      console.error('[teracota] rig falhou, usando a skin original:', err);
+      resetCharacterEl();
+      skin = await api?.getFallbackSkin().catch(() => null);
+    }
+  }
+  if (skin && !skin.rig) {
     try {
       return await SpriteCharacter.create(characterEl, skin);
     } catch (err) {
       console.error('[teracota] skin falhou, usando o desenho:', err);
-      characterEl.removeAttribute('style');
-      characterEl.className = '';
+      resetCharacterEl();
     }
   }
   return new SvgCharacter(characterEl);

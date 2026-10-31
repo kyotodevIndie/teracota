@@ -1,4 +1,5 @@
 // Formato de skin (pacote de sprites) — compartilhado entre main, renderer e o importador.
+import { isSafeImagePath, type RigManifest } from './rig';
 
 /** Poses que uma skin pode ter. Só `idle` é obrigatória; as outras caem num fallback. */
 export const POSES = [
@@ -33,6 +34,10 @@ export interface SkinSwing {
 
 export interface SkinManifest {
   name: string;
+  /** sprites (padrão, frames por pose) ou rig (camadas articuladas, experimental) */
+  type?: 'sprites' | 'rig';
+  /** Só pra type "rig": caminho do rig.json, relativo à pasta da skin */
+  rig?: string;
   /** Tamanho (px) em que cada frame quadrado é desenhado na tela */
   size: number;
   /** Pra que lado o personagem olha na animação `walk` */
@@ -51,7 +56,12 @@ export interface SkinInfo {
   manifest: SkinManifest;
   /** Alfa de cada frame em HIT_MASK_SIZE², pra saber se o mouse está em cima do personagem */
   hitMasks: Partial<Record<Pose, Uint8Array[]>>;
+  /** Só skins de rig: o manifesto do rig já validado */
+  rig?: RigManifest;
 }
+
+/** A skin original da Tera: é ela o fallback quando outra skin (ex.: o rig) falha */
+export const ORIGINAL_SKIN_ID = 'tera';
 
 /** Id reservado pro personagem desenhado em SVG (sem sprites) */
 export const SVG_SKIN_ID = 'svg';
@@ -70,6 +80,15 @@ function parseSwing(input: unknown, frameCount: number): { swing?: SkinSwing } {
 export function parseSkinManifest(input: unknown): SkinManifest | null {
   if (!input || typeof input !== 'object') return null;
   const o = input as Record<string, unknown>;
+  const base = {
+    name: typeof o.name === 'string' ? o.name : 'Skin',
+    size: typeof o.size === 'number' && o.size > 0 ? o.size : 260,
+    facing: o.facing === 'left' ? 'left' as const : 'right' as const,
+  };
+  if (o.type === 'rig') {
+    // o rig.json em si é validado por parseRigManifest (rig.ts) ao carregar
+    return isSafeJsonPath(o.rig) ? { ...base, type: 'rig', rig: o.rig, animations: {} } : null;
+  }
   if (!o.animations || typeof o.animations !== 'object') return null;
   const animations: SkinManifest['animations'] = {};
   for (const pose of POSES) {
@@ -84,10 +103,11 @@ export function parseSkinManifest(input: unknown): SkinManifest | null {
     animations[pose] = { frames, durations, loop: a.loop !== false, scale, ...parseSwing(a.swing, frames.length) };
   }
   if (!animations.idle) return null;
-  return {
-    name: typeof o.name === 'string' ? o.name : 'Skin',
-    size: typeof o.size === 'number' && o.size > 0 ? o.size : 260,
-    facing: o.facing === 'left' ? 'left' : 'right',
-    animations,
-  };
+  // sem "type": skin de sprites (formato de sempre, inalterado)
+  return { ...base, animations };
+}
+
+/** Caminho relativo seguro pra um .json dentro da pasta da skin */
+function isSafeJsonPath(p: unknown): p is string {
+  return typeof p === 'string' && p.toLowerCase().endsWith('.json') && isSafeImagePath(p.replace(/\.json$/i, '.png'));
 }

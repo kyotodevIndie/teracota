@@ -1,0 +1,7 @@
+{
+  "name": "Tera (rig experimental)",
+  "type": "rig",
+  "size": 260,
+  "facing": "right",
+  "rig": "rig.json"
+}

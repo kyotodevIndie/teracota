@@ -11,7 +11,7 @@ import { buildMenu } from './menu';
 import { offerConnection, onTeraClicked, refreshSpeech } from './connect-flow';
 import { assetsDir } from './paths';
 import { startEventServer } from './server';
-import { loadSkin } from './skins';
+import { loadFallbackSkin, loadSkin, loadSpriteSkin } from './skins';
 import { registerCompanionIpc } from './companion';
 import { initAgentPanel } from './panel';
 import { initUi } from './ui-mode';
@@ -34,7 +34,9 @@ onEntity<[boolean]>(IPC.walkAllowed, (entity, allowed) => entity.setWalkAllowed(
 onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window: entity.win }));
 onEntity(IPC.clicked, () => onTeraClicked(manager));
 ipcMain.handle(IPC.getSkin, () => loadSkin(manager?.skinId));
-registerCompanionIpc(() => loadSkin(manager?.skinId));
+ipcMain.handle(IPC.getFallbackSkin, () => loadFallbackSkin());
+// o Mini desenha frames <img>: com um rig selecionado, usa a skin de sprites (P-11 do rig)
+registerCompanionIpc(() => loadSpriteSkin(manager?.skinId));
 
 function createTray(): void {
   // tray@2x.png ao lado é usado automaticamente em telas com escala alta
