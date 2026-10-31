@@ -25,7 +25,7 @@ Activities last a few seconds and fall back to the base state. She never gets st
 
 | Action | Reaction |
 |---|---|
-| **Click** | She reacts. If she's asleep, she wakes up; if she's working, she asks for a minute. |
+| **Click** | Opens her window (agents and chat). If she's asleep, she wakes up and opens it. Closing the window keeps Tera on your desktop. |
 | **Drag** | She swings like a pendulum, following your speed, and stays where you drop her. |
 | **Move the mouse back and forth** over her | Head pat ♥ |
 | **Right-click** her or the tray icon | Menu |

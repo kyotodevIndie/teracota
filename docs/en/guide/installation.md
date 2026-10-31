@@ -43,8 +43,8 @@ Windows** (start with Windows). You can turn it off in the menu.
 ## 3. Connect to Claude Code
 
 A few seconds after launching, if Claude Code is installed and the plugin isn't, she
-says she found Claude Code and asks you to click her. **One click** and you're done. She
-only installs anything after that click.
+says she found Claude Code. Click her to open her window and press **Conectar ao Claude
+Code** (connect to Claude Code). She only installs anything after that button.
 
 If the offer doesn't show up, or you'd rather do it yourself:
 

@@ -1,31 +1,40 @@
-# Agent Bridge e painel de conversa (experimental)
+# Agent Bridge e a interface da Tera
 
-O painel de conversa deixa o usuário falar com um agente de dentro da Teracota. Tudo é
-**experimental, só em desenvolvimento** e desligado por padrão. A Tera reage à sessão do
-painel pelo mesmo caminho dos agentes externos (Companion Core), sem hooks, `CLAUDE.md`
-nem settings do projeto.
+Clicar na Tera abre a **interface** dela (uma janela só, separada da personagem; fechar só
+esconde). Ela tem duas partes:
 
-Caminho dos dados: `AgentProvider` -> `BridgeManager` (estado e histórico em memória) ->
-IPC validado -> janela do painel. Em paralelo, `linkBridgeToCompanion` converte os eventos
-em `AgentSignal` -> `EntityManager.handleSignal` -> estado visual da Tera.
+- **Agentes no terminal**: estado da conexão com cada agente (hooks), botão Conectar,
+  copiar o comando pras sessões já abertas e as falas por MCP (`src/main/panel/app-ipc.ts`,
+  contrato em `apps/desktop/src/shared/app-panel.ts`).
+- **Conversar por aqui**: sessões do Agent Bridge (`@tera/agent-bridge`). A Tera reage à
+  sessão pelo mesmo caminho dos agentes externos (Companion Core), sem hooks, `CLAUDE.md`
+  nem settings do projeto.
+
+Caminho dos dados: `AgentProvider` -> `BridgeManager` (estado e histórico em memória,
+`packages/agent-bridge`) -> IPC validado -> janela da interface. Em paralelo,
+`linkBridgeToCompanion` converte os eventos em `AgentSignal` -> `EntityManager.handleSignal`
+-> estado visual da Tera.
+
+**Situação:** a interface e a conexão estão homologadas no Electron real (dev e empacotado,
+Linux). A conversa com o Claude real **nunca foi executada**: exige `ANTHROPIC_API_KEY` (a
+política de autenticação não mudou) e o smoke pago depende de autorização.
 
 ## Flags
 
 | Variável | Efeito |
 | --- | --- |
-| `TERACOTA_AGENT_PANEL=1` | Liga o painel. Só vale com o app **não empacotado** (`app.isPackaged === false`). |
-| `TERACOTA_AGENT_PANEL_SIM=1` | Adiciona o provider "Simulação (sem agente)" e abre o painel ao iniciar. Exige a flag acima. |
+| `TERACOTA_AGENT_PANEL_SIM=1` | Só com o app **não empacotado**: adiciona o provider "Simulação (sem agente)" e abre a interface ao iniciar. |
 
-Ambas vêm **desligadas por padrão** e nunca funcionam no app empacotado. Exemplo (PowerShell):
+`TERACOTA_AGENT_PANEL` não existe mais: a interface está sempre disponível. Exemplo:
 
-```powershell
-$env:TERACOTA_AGENT_PANEL = '1'; $env:TERACOTA_AGENT_PANEL_SIM = '1'
-node build.mjs; npx electron . --remote-debugging-port=9333
+```bash
+TERACOTA_AGENT_PANEL_SIM=1 pnpm start
 ```
 
-`--remote-debugging-port` é argumento nativo do Electron (o código do main não fixa porta);
-serve para dirigir o painel via CDP. Use só em máquina local. Lembre que o app tem trava de
-instância única: feche outra Teracota Dev antes.
+Pra dirigir o app via CDP, rode o Electron com `--remote-debugging-port=9333` (renderers) e
+`--inspect=9334` (main), só em máquina local. O app tem trava de instância única: feche outra
+Teracota Dev antes. No Linux com Wayland o app se reabre sozinho em XWayland
+(`--ozone-platform=x11`); os argumentos são repassados.
 
 ## Modo simulado
 
@@ -117,15 +126,16 @@ não encerra a outra.
   (o script limpa a pasta temporária); em último caso, revogar a chave no Console.
 - **Limitações de distribuição do SDK**: pelos termos do Agent SDK, apps de terceiros usam
   chave de API; é proibido oferecer o login da assinatura Claude Code sem aprovação da
-  Anthropic, e este projeto não usa a assinatura como substituto. O SDK é dependência **só de
-  desenvolvimento** e o painel é dev-only (flag, e inativo no empacotado). Distribuir isso a
-  usuários finais exigiria rever termos, empacotamento e autenticação.
+  Anthropic, e este projeto não usa a assinatura como substituto. O SDK agora é dependência
+  de produção do app (`apps/desktop`) e vai no pacote, sem o binário do Claude Code que vem
+  junto (o provider usa o `claude` do PATH). A conversa só fica disponível com
+  `ANTHROPIC_API_KEY` no ambiente.
 
 ## Arquitetura futura: provedores alternativos
 
-O painel só conhece a interface `AgentProvider` (`src/main/bridge/types.ts`): disponibilidade,
+O painel só conhece a interface `AgentProvider` (`packages/agent-bridge/src/types.ts`): disponibilidade,
 listagem de sessões e `start` que devolve uma `ProviderSession` (send, permissão, interromper,
-fechar). Outros agentes entram como novos providers em `src/main/integrations/<agente>/`,
+fechar). Outros agentes entram como novos providers em `apps/desktop/src/main/integrations/<agente>/`,
 registrados em `BRIDGE_PROVIDERS`, sem mudar o painel nem o core: outros SDKs ou CLIs de agentes,
 endpoints compatíveis com APIs de modelos, ou modelo local. Todos reutilizam o mesmo
 `companion-link` (a Tera reage igual) e as mesmas regras: consentimento para ações sensíveis,

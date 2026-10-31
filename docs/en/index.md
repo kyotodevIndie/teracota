@@ -54,7 +54,7 @@ These are Tera's real reactions, drawn with the app's artwork. Click a situation
 ## Install in 3 steps
 
 1. Download `Teracota Setup x.y.z.exe` from the [releases page](https://github.com/kyotodevIndie/teracota/releases/latest) and run it. The installer isn't code-signed yet, so Windows shows a warning: click **More info → Run anyway**.
-2. When Tera offers, **click her** to connect to Claude Code (or use the menu → **Conectar ao Claude Code**).
+2. **Click Tera** to open her window and connect to Claude Code (or use the menu → **Conectar ao Claude Code**).
 3. Start a Claude Code session. That's it.
 
 The full walkthrough is in the [installation guide](/en/guide/installation).

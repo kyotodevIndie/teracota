@@ -1,5 +1,9 @@
 # Relatório de prontidão pro lançamento: Teracota 0.1.0 (beta)
 
+> **Correção de status (2026-10-30):** a `v0.1.0` **já foi publicada** como *pre-release* no
+> GitHub em 2026-10-01 (tag `v0.1.0` em `05dc270`). Este relatório é histórico; o estado atual
+> está em `reports/consolidacao/RELATORIO.md`.
+
 > Gerado em 2026-10-01, no commit `670673d` (`main`, já no GitHub, CI verde).
 > **Nada foi publicado:** nenhuma tag, release ou deploy do site. Os passos de publicação
 > estão na seção 7 e esperam a sua aprovação.

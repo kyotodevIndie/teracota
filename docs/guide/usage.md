@@ -25,7 +25,7 @@ As atividades duram alguns segundos e voltam pro estado de base. Ela não fica p
 
 | Ação | Reação |
 |---|---|
-| **Clique** | Ela reage. Se estiver dormindo, acorda. Se estiver trabalhando, pede um minutinho. |
+| **Clique** | Abre a janela dela (agentes e conversa). Se estiver dormindo, acorda e abre. Fechar a janela não tira a Tera do desktop. |
 | **Arrastar** | Ela balança como um pêndulo, conforme a velocidade, e fica onde você soltar. |
 | **Passar o mouse de um lado pro outro** em cima dela | Carinho ♥ |
 | **Botão direito** nela ou no ícone da bandeja | Menu |

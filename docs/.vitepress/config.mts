@@ -28,6 +28,7 @@ const ptSidebar: DefaultTheme.Sidebar = {
         { text: 'Integrações com agentes', link: '/dev/integrations' },
         { text: 'API local', link: '/dev/api' },
         { text: 'Criando skins', link: '/dev/skins' },
+        { text: 'Arte do rig 2D', link: '/dev/rig-art' },
       ],
     },
   ],

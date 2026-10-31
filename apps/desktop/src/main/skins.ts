@@ -69,7 +69,10 @@ function readSkin(id: string): SkinInfo | null {
 function readRigSkin(id: string, dir: string, manifest: SkinManifest): SkinInfo | null {
   try {
     const parsed = parseRigManifest(JSON.parse(fs.readFileSync(path.join(dir, manifest.rig!), 'utf8')));
-    const missing = parsed.rig?.layers.filter((l) => !fs.existsSync(path.join(dir, l.image))).map((l) => `camada "${l.id}": imagem ${l.image} não encontrada`) ?? [];
+    // todas as variantes (olhos, boca...) precisam existir: o renderer carrega todas antes do 1º quadro
+    const missing = parsed.rig?.layers.flatMap((l) => Object.values(l.variants)
+      .filter((file) => !fs.existsSync(path.join(dir, file)))
+      .map((file) => `camada "${l.id}": imagem ${file} não encontrada`)) ?? [];
     const errors = [...(parsed.errors ?? []), ...missing];
     if (errors.length || !parsed.rig) {
       console.error(`[teracota] rig "${id}" inválido:\n  ${errors.join('\n  ')}`);

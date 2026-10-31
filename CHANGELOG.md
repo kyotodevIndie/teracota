@@ -6,6 +6,29 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 
 ## [Não lançado]
 
+### Mudou
+- **Clicar na Tera abre a interface dela** (uma janela só; fechar esconde e a Tera continua
+  no desktop). Conectar ao Claude Code virou um botão explícito na interface; a oferta da
+  primeira execução só convida a abrir a janela
+- **Rig 2D é o renderer padrão**, com poses, expressões, piscada, olhar pro cursor, boca
+  falando e passos; a arte das camadas ainda é provisória. Os sprites continuam como fallback
+- Passeio e desenho no mesmo quadro da tela: some o tremido ao andar em telas de 120/144 Hz,
+  e trocar de pose não dá mais "pulo"
+- Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
+
+### Adicionado
+- "Reduzir movimento" no menu (e respeita o `prefers-reduced-motion` do sistema)
+- Linux: o app se reabre em XWayland quando a sessão é Wayland (lá a janela não se posiciona)
+- A Tera volta pra tela se for solta fora da área útil ou se um monitor for desligado; o
+  clique na bandeja também a traz de volta
+
+### Removido
+- Mini Companion (modo compacto experimental): quem estava nele volta pra Tera completa
+
+### Segurança
+- Electron 44.9.3; MCP SDK 1.32.1 e correções em dependências transitivas dele (body-parser,
+  fast-uri, hono, @hono/node-server, ip-address, qs): `pnpm audit --prod` sem achados
+
 ## [0.1.0] — 2026-10-01 (beta)
 
 Primeira versão pública: beta pra Windows.

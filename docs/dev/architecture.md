@@ -14,11 +14,12 @@ API local: [API local](./api).
 |---|---|
 | App | Electron (main + preload + renderer), sem framework de UI: DOM, Canvas 2D e SVG |
 | Linguagem | TypeScript estrito |
-| Build | esbuild (`build.mjs`); tipos checados à parte com `tsc --noEmit` |
+| Repositório | Monorepo pnpm: `apps/desktop` (o app), `packages/character` (skin, rig 2D, animador), `packages/agent-bridge` (contrato, BridgeManager, provider simulado); `assets/`, `docs/`, `plugin/` na raiz |
+| Build | esbuild (`apps/desktop/build.mjs`); tipos checados à parte com `tsc --noEmit` em cada pacote |
 | Integração | Adapters por agente (Claude Code: hooks via `curl`) + API local + MCP opcional (`@modelcontextprotocol/sdk`) servido pelo app |
 | Testes | Vitest (lógica pura, servidor HTTP real e o core com o Electron simulado) |
 | Lint | Biome (só linter) |
-| Empacotamento | electron-builder (instalador NSIS do Windows) |
+| Empacotamento | electron-builder (instalador NSIS do Windows; `--dir` no Linux pra testar) |
 | CI | GitHub Actions: `ci.yml` (checks), `release.yml` (tag → instalador → rascunho de release) e `docs.yml` (este site) |
 
 ## Visão geral
@@ -35,18 +36,24 @@ API local: [API local](./api).
 │ manager.ts       Companion Core: sessões → qual Tera mostra│
 │ sessions.ts      sessões por provider:sessionId            │
 │ entity.ts        uma Tera = BrowserWindow + Walker + IPC   │
-│ walker.ts        passeio (move a janela)                   │
-│ skins.ts         skins + máscaras de clique                │
-│ menu.ts, main.ts menu, bandeja, ciclo de vida              │
+│ walker.ts        planeja o passeio (destino, velocidade)   │
+│ geometry.ts      área útil, monitor perdido, arrasto       │
+│ skins.ts         skins (rig padrão, sprites de fallback)   │
+│ panel/           a interface (clique na Tera): agentes +   │
+│                  conversa (@tera/agent-bridge)             │
+│ menu.ts, main.ts menu, bandeja, ciclo de vida, XWayland    │
 └──────────────┬─────────────────────────────────────────────┘
                │ IPC (shared/ipc.ts) — window.teracota no preload
                ▼
 ┌──────────── Renderer (uma página por Tera) ────────────────┐
 │ app.ts            estados, reações, mouse, arrasto, fala   │
+│ frame-clock.ts    um rAF: anda a janela E desenha juntos   │
+│ gesture.ts        clique × arrasto (soltar arrasto ≠ clique│
 │ character.ts      interface Character (plugável)           │
-│ sprite-character  skin de sprites em <canvas>              │
-│ svg-character     desenho SVG ("clássica")                 │
-│ wobble.ts         movimento procedural                     │
+│ rig/              rig 2D (padrão) sobre @tera/character    │
+│ sprite-character  sprites em <canvas> (fallback)           │
+│ svg-character     desenho SVG ("clássica", último recurso) │
+│ wobble.ts         corpo inteiro, com troca suave de pose   │
 │ pendulum.ts       física do balanço ao arrastar            │
 └────────────────────────────────────────────────────────────┘
 ```

@@ -38,8 +38,9 @@ Dá pra desligar no menu.
 ## 3. Conectar ao Claude Code
 
 Uns segundos depois de abrir, se o Claude Code estiver instalado e ainda sem o plugin,
-ela avisa: **"Achei o Claude Code! Clica em mim que eu me conecto 🔌"**. Um clique
-nela e pronto. Ela só instala com esse clique.
+ela avisa: **"Achei o Claude Code! Clica em mim pra abrir minha janela e conectar 🔌"**.
+Clique nela e, na janela que abre, em **Conectar ao Claude Code**. Ela só instala com esse
+botão.
 
 Se a oferta não aparecer, ou se você preferir fazer à mão:
 

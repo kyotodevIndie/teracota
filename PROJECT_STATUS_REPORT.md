@@ -1,5 +1,9 @@
 # Relatório de status do projeto: Teracota
 
+> **Correção de status (2026-10-30):** a `v0.1.0` **já foi publicada** como *pre-release* no
+> GitHub em 2026-10-01 (tag `v0.1.0` em `05dc270`). Este relatório é histórico; o estado atual
+> está em `reports/consolidacao/RELATORIO.md`.
+
 > Gerado em 2026-10-01, a partir do estado real do repositório (commit `c0f3cb9`).
 > Os resultados de testes, typecheck, lint e build são de uma execução feita durante a
 > geração deste relatório (seção 4.2). Medições de CPU e memória são de execuções

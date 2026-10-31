@@ -19,7 +19,7 @@ English docs: [docs/en](docs/en/index.md).*
 1. Baixe o `Teracota Setup x.y.z.exe` em [Releases](https://github.com/kyotodevIndie/teracota/releases/latest) e rode.
    O instalador ainda não tem assinatura digital: no aviso do Windows, clique em
    **Mais informações → Executar assim mesmo**.
-2. Quando a Tera oferecer, **clique nela** pra conectar ao Claude Code.
+2. **Clique na Tera**: abre a janela dela. Lá, **Conectar ao Claude Code**.
 3. Abra uma sessão do Claude Code.
 
 Passo a passo, comandos manuais e desinstalação: [guia de instalação](docs/guide/installation.md).

@@ -23,11 +23,11 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.289"
   },
   "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@tera/agent-bridge": "workspace:*",
     "@tera/character": "workspace:*",
     "@types/node": "^26.6.2",
-    "electron": "^44.4.5",
+    "electron": "^44.9.3",
     "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
@@ -85,6 +85,7 @@
       ],
       "category": "Utility",
       "icon": "../../assets/icons/icon.png"
-    }
+    },
+    "executableName": "teracota"
   }
 }
