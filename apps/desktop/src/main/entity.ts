@@ -9,11 +9,15 @@ import { Walker } from './walker';
 
 export const SIZE = { width: 320, height: 440 };
 /**
- * Enquanto ela é arrastada, a janela ganha essa folga de cada lado: segurada pela cabeça,
- * o balanço (até ~45°) joga as pernas pra fora dos 320 px. Fora do arrasto a janela volta
- * ao tamanho normal (o passeio e as posições salvas usam SIZE).
+ * A janela tem essa folga (transparente, sem clique) de cada lado: segurada pela cabeça, o
+ * balanço (até ~45°) joga as pernas pra fora dos 320 px. A folga é fixa: alargar só no
+ * arrasto fazia ela "piscar" pro lado (a janela mudava de lugar um quadro antes do
+ * conteúdo). Posições (passeio, salvas, tela) continuam no tamanho SIZE: a folga é
+ * descontada em `position` e somada em `moveTo`.
  */
 export const DRAG_EXTRA = 110;
+/** Tamanho de verdade da janela */
+export const WINDOW_SIZE = { width: SIZE.width + DRAG_EXTRA * 2, height: SIZE.height };
 
 /**
  * Linux (X11/XWayland): a área clicável é um recorte da janela (setShape), não o
@@ -85,8 +89,6 @@ export class Entity {
   private readonly queue: Array<[string, unknown]> = [];
   private moveMode: MoveMode;
   private motion: MotionInfo = { reduced: false };
-  /** Janela alargada pro arrasto */
-  private wide = false;
 
   constructor(opts: EntityOptions) {
     this.identity = opts.identity;
@@ -95,8 +97,9 @@ export class Entity {
     this.onSay = opts.onSay;
 
     this.win = new BrowserWindow({
-      ...SIZE,
-      ...opts.position,
+      ...WINDOW_SIZE,
+      x: opts.position.x - DRAG_EXTRA,
+      y: opts.position.y,
       title: CHARACTER_NAME,
       transparent: true,
       frame: false,
@@ -161,18 +164,10 @@ export class Entity {
     return !this.win.isDestroyed();
   }
 
-  /** Posição da janela no tamanho normal (alargada pro arrasto, desconta a folga) */
+  /** Posição no tamanho SIZE (a janela de verdade começa DRAG_EXTRA antes) */
   get position(): Point {
     const { x, y } = this.win.getBounds();
-    return { x: x + (this.wide ? DRAG_EXTRA : 0), y };
-  }
-
-  /** Alarga (ou volta) a janela sem a personagem sair do lugar */
-  private setWide(wide: boolean): void {
-    if (!this.alive || wide === this.wide) return;
-    const p = this.position;
-    this.wide = wide;
-    this.moveTo(p);
+    return { x: x + DRAG_EXTRA, y };
   }
 
   send(event: CompanionEvent): void {
@@ -228,15 +223,13 @@ export class Entity {
 
   moveBy(dx: number, dy: number): void {
     this.walker.interrupt();
-    this.setWide(true);
     const { x, y } = this.position;
     this.moveTo({ x: x + dx, y: y + dy });
   }
 
   moveTo({ x, y }: Point): void {
     if (!this.alive) return;
-    const extra = this.wide ? DRAG_EXTRA : 0;
-    this.win.setBounds({ x: Math.round(x) - extra, y: Math.round(y), width: SIZE.width + extra * 2, height: SIZE.height });
+    this.win.setBounds({ x: Math.round(x) - DRAG_EXTRA, y: Math.round(y), ...WINDOW_SIZE });
   }
 
   resetPosition(): void {
@@ -248,7 +241,6 @@ export class Entity {
   /** Parou num lugar novo (soltou do arrasto, fim do passeio): garante que ficou visível e salva */
   settle(): void {
     if (!this.alive) return;
-    this.setWide(false);
     this.ensureOnScreen();
     this.onSettle?.(this.position);
   }
