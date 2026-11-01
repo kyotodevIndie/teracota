@@ -2,6 +2,7 @@
 // Tudo por textContent. Os pedidos mostram o que a IA quer; a resposta é no terminal dela.
 import type { AppPanelApi } from '../shared/app-panel';
 import type { AiBadge, LiveSession, LiveSnapshot } from '../shared/live';
+import type { PluginCard } from '../shared/plugins';
 import { ago, sessionLine, sortSessions } from './panel-format';
 
 type Filter = 'all' | 'active' | 'waiting';
@@ -58,6 +59,31 @@ export function sessionCard(s: LiveSession, opts: { showAgent: boolean; now?: nu
     text.append(el('span', 'mono', line.detail));
   }
   card.append(text);
+  return card;
+}
+
+/** Cartão de um plugin (Pomodoro, CI...) */
+export function pluginCard(c: PluginCard): HTMLElement {
+  const card = el('article', `card glass hit plugin-card${c.level === 'attention' ? ' request' : ''}`);
+  card.dataset.level = c.level;
+  card.dataset.testid = 'plugin-card';
+  const head = el('div', 's-head');
+  const agent = el('span', 's-agent');
+  agent.append(aiIcon(c.badge, true), c.pluginName);
+  head.append(el('span', 's-name', c.title), agent);
+  card.append(head);
+  if (c.line) card.append(el('div', 's-line', c.line));
+  if (c.progress !== undefined) {
+    const bar = el('div', 'bar');
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-valuenow', String(Math.round(c.progress * 100)));
+    bar.setAttribute('aria-valuemin', '0');
+    bar.setAttribute('aria-valuemax', '100');
+    const fill = el('span');
+    fill.style.width = `${Math.round(c.progress * 100)}%`;
+    bar.append(fill);
+    card.append(bar);
+  }
   return card;
 }
 
@@ -143,8 +169,9 @@ export function mountLive(opts: {
     badge.hidden = waiting.length === 0;
     badge.textContent = String(waiting.length);
 
-    nowList.replaceChildren(...active.map((s) => sessionCard(s, { showAgent, now })));
-    nowEmpty.hidden = active.length > 0;
+    const cards = next.cards ?? [];
+    nowList.replaceChildren(...active.map((s) => sessionCard(s, { showAgent, now })), ...cards.map(pluginCard));
+    nowEmpty.hidden = active.length + cards.length > 0;
 
     const shown = filter === 'waiting' ? waiting : filter === 'active' ? active.filter((s) => s.working || s.request) : active;
     sessList.replaceChildren(...shown.map((s) => sessionCard(s, { showAgent: true, now })));

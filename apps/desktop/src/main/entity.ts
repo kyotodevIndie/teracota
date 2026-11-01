@@ -8,6 +8,12 @@ import { recoverPosition } from './geometry';
 import { Walker } from './walker';
 
 export const SIZE = { width: 320, height: 440 };
+/**
+ * Enquanto ela é arrastada, a janela ganha essa folga de cada lado: segurada pela cabeça,
+ * o balanço (até ~45°) joga as pernas pra fora dos 320 px. Fora do arrasto a janela volta
+ * ao tamanho normal (o passeio e as posições salvas usam SIZE).
+ */
+export const DRAG_EXTRA = 110;
 
 /**
  * Linux (X11/XWayland): a área clicável é um recorte da janela (setShape), não o
@@ -27,7 +33,7 @@ export function parseShape(input: unknown): Electron.Rectangle[] | null {
     const nums = [o?.x, o?.y, o?.width, o?.height];
     if (!nums.every((n) => typeof n === 'number' && Number.isInteger(n))) return null;
     const [x, y, width, height] = nums as number[];
-    if (x! < 0 || y! < 0 || width! <= 0 || height! <= 0 || x! + width! > SIZE.width || y! + height! > SIZE.height) return null;
+    if (x! < 0 || y! < 0 || width! <= 0 || height! <= 0 || x! + width! > SIZE.width + DRAG_EXTRA * 2 || y! + height! > SIZE.height) return null;
     out.push({ x: x!, y: y!, width: width!, height: height! });
   }
   return out;
@@ -43,6 +49,8 @@ export interface EntityOptions {
   visible?: boolean;
   /** Chamado quando a entidade para num lugar novo (arrastada ou fim do passeio) */
   onSettle?: (p: Point) => void;
+  /** Ela falou algo (a interface aberta mostra a fala, porque cobre o balão) */
+  onSay?: (text: string, from?: string) => void;
 }
 
 export function cornerPosition(): Point {
@@ -72,15 +80,19 @@ export class Entity {
   identity: Identity;
   private readonly walker: Walker;
   private readonly onSettle?: (p: Point) => void;
+  private readonly onSay?: (text: string, from?: string) => void;
   private ready = false;
   private readonly queue: Array<[string, unknown]> = [];
   private moveMode: MoveMode;
   private motion: MotionInfo = { reduced: false };
+  /** Janela alargada pro arrasto */
+  private wide = false;
 
   constructor(opts: EntityOptions) {
     this.identity = opts.identity;
     this.moveMode = opts.moveMode;
     this.onSettle = opts.onSettle;
+    this.onSay = opts.onSay;
 
     this.win = new BrowserWindow({
       ...SIZE,
@@ -149,13 +161,23 @@ export class Entity {
     return !this.win.isDestroyed();
   }
 
+  /** Posição da janela no tamanho normal (alargada pro arrasto, desconta a folga) */
   get position(): Point {
     const { x, y } = this.win.getBounds();
-    return { x, y };
+    return { x: x + (this.wide ? DRAG_EXTRA : 0), y };
+  }
+
+  /** Alarga (ou volta) a janela sem a personagem sair do lugar */
+  private setWide(wide: boolean): void {
+    if (!this.alive || wide === this.wide) return;
+    const p = this.position;
+    this.wide = wide;
+    this.moveTo(p);
   }
 
   send(event: CompanionEvent): void {
     this.post(IPC.event, event);
+    if (event.say) this.onSay?.(event.say, event.from);
   }
 
   setIdentity(sessionId: string | null, identity: Identity): void {
@@ -206,12 +228,15 @@ export class Entity {
 
   moveBy(dx: number, dy: number): void {
     this.walker.interrupt();
+    this.setWide(true);
     const { x, y } = this.position;
     this.moveTo({ x: x + dx, y: y + dy });
   }
 
   moveTo({ x, y }: Point): void {
-    if (this.alive) this.win.setBounds({ x: Math.round(x), y: Math.round(y), ...SIZE });
+    if (!this.alive) return;
+    const extra = this.wide ? DRAG_EXTRA : 0;
+    this.win.setBounds({ x: Math.round(x) - extra, y: Math.round(y), width: SIZE.width + extra * 2, height: SIZE.height });
   }
 
   resetPosition(): void {
@@ -223,6 +248,7 @@ export class Entity {
   /** Parou num lugar novo (soltou do arrasto, fim do passeio): garante que ficou visível e salva */
   settle(): void {
     if (!this.alive) return;
+    this.setWide(false);
     this.ensureOnScreen();
     this.onSettle?.(this.position);
   }

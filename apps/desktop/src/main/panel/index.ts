@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { app, dialog, ipcMain } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import { BridgeManager } from '@tera/agent-bridge';
 import { createSimulatedProvider } from '@tera/agent-bridge';
 import { linkBridgeToCompanion } from '../bridge/companion-link';
@@ -14,7 +14,8 @@ import { BRIDGE_PROVIDERS } from '../integrations';
 import type { EntityManager } from '../manager';
 import { adapterById, connectAgent, connectionStatus, connectOpenSessions, setSpeech } from '../connect-flow';
 import { APP_PANEL_IPC } from '../../shared/app-panel';
-import { DEFAULT_GLASS, type PrefsPatch, type UiPrefs } from '../../shared/live';
+import { DEFAULT_GLASS, type LiveSnapshot, type PrefsPatch, type UiPrefs } from '../../shared/live';
+import type { PluginHost } from '../plugins/host';
 import { getPort } from '../../shared/protocol';
 import { ADAPTERS } from '../integrations';
 import { usageStore } from '../usage';
@@ -60,6 +61,7 @@ export class AgentPanel {
     });
     manager?.onHomeMove(() => this.window.reposition());
     manager?.onLiveChange(() => this.pushLive());
+    manager?.onSpeech((text, from) => { if (this.window.visible) this.window.sendRaw(APP_PANEL_IPC.speech, { text, from }); });
     usageStore.onChange(() => this.window.sendRaw(APP_PANEL_IPC.usageChanged, usageStore.list()));
     this.bridge.onEvent((e) => this.window.send(e));
     if (opts.onSignal) linkBridgeToCompanion(this.bridge, opts.onSignal, (h) => this.bridge.describe(h));
@@ -79,7 +81,7 @@ export class AgentPanel {
         openDialog: async () => {
           const opts: Electron.OpenDialogOptions = { title: 'Escolha a pasta do projeto', properties: ['openDirectory'] };
           const parent = this.window.native;
-          const r = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
+          const r = await this.window.withDialog(() => (parent ? dialog.showOpenDialog(parent, opts) : dialog.showOpenDialog(opts)));
           return r.canceled ? null : (r.filePaths[0] ?? null);
         },
       }),
@@ -93,7 +95,7 @@ export class AgentPanel {
       pickFolder: async () => {
         const opts: Electron.OpenDialogOptions = { title: 'Pasta do terminal', properties: ['openDirectory'] };
         const parent = this.window.native;
-        const r = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
+        const r = await this.window.withDialog(() => (parent ? dialog.showOpenDialog(parent, opts) : dialog.showOpenDialog(opts)));
         const dir = r.canceled ? null : (r.filePaths[0] ?? null);
         if (dir) this.terminal.setFolder(dir);
         return dir ? path.basename(dir) || dir : null;
@@ -112,12 +114,19 @@ export class AgentPanel {
       isPanelSender,
       terminal,
       minimize: () => this.window.hide(),
-      live: () => manager?.liveSnapshot() ?? { active: [], ended: [] },
+      live: () => this.liveSnapshot(),
       usage: () => usageStore.list(),
       prefs: () => this.prefs(),
       setPrefs: (patch) => this.setPrefs(patch),
       expand: () => this.window.show(),
       layout,
+      plugins: {
+        list: () => this.pluginHost?.status() ?? [],
+        setEnabled: (id, on) => this.pluginHost?.setEnabled(id, on) ?? false,
+        setValue: (id, key, value) => this.pluginHost?.setValue(id, key, value) ?? false,
+        openFolder: () => { if (this.pluginHost) void shell.openPath(this.pluginHost.pluginsDir); },
+        rescan: () => this.pluginHost?.rescan(),
+      },
       connections: connectionStatus,
       connect: async (id) => {
         const adapter = adapterById(id);
@@ -171,10 +180,26 @@ export class AgentPanel {
     this.window.toggle();
   }
 
+  private pluginHost: PluginHost | null = null;
+
+  setPlugins(host: PluginHost): void {
+    this.pluginHost = host;
+  }
+
+  /** Plugins mudaram (cartões, ligados, erros) */
+  pluginsChanged(): void {
+    this.window.sendRaw(APP_PANEL_IPC.pluginsChanged, this.pluginHost?.status() ?? []);
+    this.pushLive();
+  }
+
+  private liveSnapshot(): LiveSnapshot {
+    return { ...(this.manager?.liveSnapshot() ?? { active: [], ended: [] }), cards: this.pluginHost?.listCards() ?? [] };
+  }
+
   /** Sessões mudaram: atualiza a interface e, se chegou um pedido novo, mostra ele sozinho */
   private pushLive(): void {
-    const snapshot = this.manager?.liveSnapshot();
-    if (!snapshot) return;
+    if (!this.manager) return;
+    const snapshot = this.liveSnapshot();
     this.window.sendRaw(APP_PANEL_IPC.liveChanged, snapshot);
     const open = snapshot.active.filter((s) => s.request).map((s) => `${s.key}@${s.request!.at}`);
     const fresh = open.some((k) => !this.seenRequests.has(k));

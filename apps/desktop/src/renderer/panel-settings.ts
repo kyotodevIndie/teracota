@@ -2,6 +2,8 @@
 // pela Tera, limites do Claude). O main guarda tudo; aqui só se desenha e se pede.
 import type { AgentConnection, AppPanelApi, PanelResultLike } from '../shared/app-panel';
 import { THEMES, type PrefsPatch, type ThemeId, type UiPrefs } from '../shared/live';
+import { describePermission, type PluginStatus } from '../shared/plugins';
+import { aiIcon } from './panel-live';
 
 const THEME_INFO: Record<ThemeId, { name: string; swatch: string }> = {
   vidro: { name: 'Vidro', swatch: 'linear-gradient(135deg, rgba(24,20,34,.9), rgba(60,54,80,.75))' },
@@ -173,6 +175,136 @@ export function mountSettings(opts: {
     }));
     opts.changed();
   }
+
+  // ---------- plugins ----------
+  const pluginList = $('plugin-list');
+  /** Plugin com a confirmação de permissões aberta */
+  let confirming: string | null = null;
+
+  function renderPlugins(list: PluginStatus[]): void {
+    if (!list.length) {
+      const empty = document.createElement('div');
+      empty.className = 'card glass hit empty';
+      empty.textContent = 'Nenhum plugin. Coloque a pasta de um plugin na pasta de plugins e clique em "Procurar de novo".';
+      pluginList.replaceChildren(empty);
+      opts.changed();
+      return;
+    }
+    pluginList.replaceChildren(...list.map((p) => {
+      const card = document.createElement('div');
+      card.className = 'card glass hit plugin';
+      card.dataset.testid = `plugin-${p.id}`;
+      const head = document.createElement('div');
+      head.className = 'plugin-head';
+      const text = document.createElement('span');
+      text.className = 'grow';
+      const title = document.createElement('strong');
+      title.textContent = p.version ? `${p.name} ${p.version}` : p.name;
+      const desc = document.createElement('span');
+      desc.className = 'note';
+      desc.textContent = p.description || (p.author ? `por ${p.author}` : '');
+      text.append(title, desc);
+      head.append(aiIcon(p.badge), text);
+      card.append(head);
+      if (p.error) {
+        const err = document.createElement('div');
+        err.className = 'err';
+        err.textContent = p.error;
+        card.append(err);
+      }
+      if (p.id.startsWith('pasta:')) return card;
+
+      if (confirming === p.id) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = p.permissions.length ? 'Ao ligar, este plugin vai poder:' : 'Este plugin não pede nenhuma permissão.';
+        const perms = document.createElement('ul');
+        perms.className = 'perms';
+        for (const perm of p.permissions) {
+          const li = document.createElement('li');
+          li.textContent = describePermission(perm);
+          perms.append(li);
+        }
+        const row = document.createElement('div');
+        row.className = 'row';
+        const ok = button('Ligar e permitir', 'plugin-approve', async () => {
+          confirming = null;
+          const r = unwrap(await api.setPlugin(p.id, true));
+          if (r) renderPlugins(r);
+        });
+        ok.className = 'primary';
+        const cancel = button('Cancelar', 'plugin-cancel', () => {
+          confirming = null;
+          renderPlugins(list);
+        });
+        cancel.className = 'ghost';
+        row.append(cancel, ok);
+        card.append(note, perms, row);
+        return card;
+      }
+
+      const toggle = document.createElement('label');
+      toggle.className = 'row';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = p.enabled;
+      box.dataset.testid = `plugin-toggle-${p.id}`;
+      box.onchange = async () => {
+        if (box.checked) {
+          // ligar sempre passa pela lista de permissões
+          confirming = p.id;
+          renderPlugins(list);
+          return;
+        }
+        const r = unwrap(await api.setPlugin(p.id, false));
+        if (r) renderPlugins(r);
+      };
+      toggle.append(box, p.needsApproval ? 'Pede permissões novas: revise pra ligar' : p.enabled ? (p.running ? 'Ligado' : 'Ligado (parado)') : 'Desligado');
+      card.append(toggle);
+
+      if (p.enabled) {
+        for (const s of p.settings) {
+          const row = document.createElement('label');
+          row.className = 'setting';
+          const name = document.createElement('span');
+          name.textContent = s.label;
+          const input = document.createElement('input');
+          const value = p.values[s.key] ?? s.default;
+          if (s.type === 'boolean') {
+            input.type = 'checkbox';
+            input.checked = value === true;
+            input.onchange = async () => { unwrap(await api.setPluginValue(p.id, s.key, input.checked)); };
+          } else {
+            input.type = s.type === 'number' ? 'number' : 'text';
+            if (s.min !== undefined) input.min = String(s.min);
+            if (s.max !== undefined) input.max = String(s.max);
+            input.value = String(value);
+            input.onchange = async () => {
+              unwrap(await api.setPluginValue(p.id, s.key, s.type === 'number' ? Number(input.value) : input.value));
+            };
+          }
+          row.append(name, input);
+          card.append(row);
+        }
+      }
+      return card;
+    }));
+    opts.changed();
+  }
+
+  $('plugins-folder').onclick = () => void api.openPluginsFolder();
+  $('plugins-rescan').onclick = async () => {
+    const r = unwrap(await api.rescanPlugins());
+    if (r) renderPlugins(r);
+  };
+  api.onPlugins((list) => {
+    // não refaz a lista enquanto alguém digita num ajuste
+    if (!pluginList.contains(document.activeElement) || !(document.activeElement as HTMLElement).matches('input[type="number"], input[type="text"]')) renderPlugins(list);
+  });
+  void api.plugins().then((r) => {
+    const list = unwrap(r);
+    if (list) renderPlugins(list);
+  });
 
   return {
     async refreshAgents() {

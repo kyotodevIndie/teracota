@@ -1,6 +1,7 @@
 // Contrato do "agora" da interface: sessões dos agentes ao vivo, pedidos pro usuário,
 // limites de uso por IA e preferências visuais (temas). O main monta; a interface só desenha.
 import type { ToolActivity } from '@tera/agent-bridge/contract';
+import type { PluginCard } from './plugins';
 
 /** O que a sessão está fazendo agora */
 export type ActivityKind = ToolActivity | 'listening' | 'idle';
@@ -50,6 +51,8 @@ export interface LiveSession {
 
 export interface LiveSnapshot {
   active: LiveSession[];
+  /** Cartões dos plugins (depois das sessões) */
+  cards?: PluginCard[];
   /** Encerradas recentemente (as mais novas primeiro) */
   ended: LiveSession[];
 }

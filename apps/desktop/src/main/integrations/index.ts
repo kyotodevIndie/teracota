@@ -49,8 +49,18 @@ export interface ProviderInfo {
 }
 
 
-/** Nome e capabilities de um provider — adapter oficial ou integração da comunidade */
+/** Providers que entram com o app rodando (plugins com o ponto "agent") */
+const extraProviders = new Map<string, ProviderInfo>();
+
+export function registerProvider(id: string, info: ProviderInfo | null): void {
+  if (info) extraProviders.set(id, info);
+  else extraProviders.delete(id);
+}
+
+/** Nome e capabilities de um provider — adapter oficial, plugin ou integração da comunidade */
 export function providerInfo(provider: string): ProviderInfo {
+  const extra = extraProviders.get(provider);
+  if (extra) return extra;
   const adapter = ADAPTERS.find((a) => a.id === provider);
   if (adapter) {
     return {

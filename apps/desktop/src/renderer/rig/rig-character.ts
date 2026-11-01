@@ -22,6 +22,11 @@ const GRIP_Y = 0.04;
 const LAND_MS = 380;
 /** Distância (px de tela) em que o olhar chega ao máximo */
 const GAZE_REACH = 360;
+/**
+ * O canvas é maior que a caixa da personagem (centrado nela): balançando no arrasto ou
+ * numa pose larga, as partes que saem da caixa continuam aparecendo em vez de cortadas.
+ */
+const OVERSCAN = 1.8;
 
 export interface RigStats {
   frames: number;
@@ -70,7 +75,13 @@ export class RigCharacter implements Character {
     this.canvas = root.querySelector('canvas')!;
     this.propEl = root.querySelector('.prop')!;
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = this.canvas.height = Math.round(size * dpr);
+    const side = size * OVERSCAN;
+    Object.assign(this.canvas.style, {
+      position: 'absolute', width: `${side}px`, height: `${side}px`,
+      left: `${-(side - size) / 2}px`, top: `${-(side - size) / 2}px`, pointerEvents: 'none',
+    });
+    root.style.overflow = 'visible';
+    this.canvas.width = this.canvas.height = Math.round(side * dpr);
     this.ctx = this.canvas.getContext('2d')!;
     this.animator = new RigAnimator(scene.rig, Math.random, performance.now());
   }
@@ -109,7 +120,7 @@ export class RigCharacter implements Character {
       this.gaze = null;
       return;
     }
-    const r = this.canvas.getBoundingClientRect();
+    const r = this.root.getBoundingClientRect();
     const head = { x: r.left + r.width / 2, y: r.top + r.height * 0.32 };
     this.gaze = [(p.x - head.x) / GAZE_REACH, (p.y - head.y) / GAZE_REACH];
   }
@@ -175,8 +186,10 @@ export class RigCharacter implements Character {
     const toRig = rig.canvas / this.skin.manifest.size; // px de tela → px do rig
     const pivot: [number, number] = [rig.feet[0], pose === 'drag' ? rig.canvas * GRIP_Y : rig.feet[1]];
     const body = localMatrix([pivot[0] + wob.dx * toRig, pivot[1] + wob.dy * toRig], wob.rot, wob.sx * flip, wob.sy, pivot);
-    const s = this.canvas.width / rig.canvas;
-    const root = multiply([s, 0, 0, s, 0, 0], body);
+    // o rig ocupa a caixa da personagem, no meio do canvas maior
+    const s = this.canvas.width / (rig.canvas * OVERSCAN);
+    const off = (this.canvas.width - rig.canvas * s) / 2;
+    const root = multiply([s, 0, 0, s, off, off], body);
     this.inverseRoot = invert(root);
 
     // a cauda "fica pra trás" quando o corpo balança

@@ -5,6 +5,7 @@ import type { PanelResult } from '@tera/agent-bridge/contract';
 import { APP_PANEL_IPC, type AgentConnection, type TerminalSnapshot } from '../../shared/app-panel';
 import { THEMES, type LiveSnapshot, type PrefsPatch, type ProviderUsage, type UiPrefs } from '../../shared/live';
 import { GLASS_RANGE } from '../config';
+import type { PluginStatus } from '../../shared/plugins';
 
 export interface AppPanelDeps {
   isPanelSender(sender: unknown): boolean;
@@ -21,6 +22,13 @@ export interface AppPanelDeps {
   expand(): void;
   /** Altura do conteúdo e recorte (validados de novo na janela) */
   layout(height: number, rects: unknown): void;
+  plugins: {
+    list(): PluginStatus[];
+    setEnabled(id: string, on: boolean): boolean;
+    setValue(id: string, key: string, value: unknown): boolean;
+    openFolder(): void;
+    rescan(): void;
+  };
   terminal: {
     /** Seletor do sistema (o consentimento); devolve o nome da pasta ou null */
     pickFolder(): Promise<string | null>;
@@ -49,6 +57,8 @@ const schemas = {
     entityMode: z.enum(['single', 'multi']).optional(),
     usage: z.object({ provider: z.string().min(1).max(64), on: z.boolean() }).strict().optional(),
   }).strict(),
+  setPlugin: z.object({ id: z.string().min(1).max(64), on: z.boolean() }).strict(),
+  setPluginValue: z.object({ id: z.string().min(1).max(64), key: z.string().min(1).max(40), value: z.union([z.number(), z.boolean(), z.string().max(500)]) }).strict(),
   layout: z.object({ height: z.number().positive().max(10_000), rects: z.array(z.unknown()).max(64) }).strict(),
 };
 
@@ -88,6 +98,19 @@ export function makeAppPanelHandlers(deps: AppPanelDeps): Record<string, AppPane
     [APP_PANEL_IPC.expand]: guarded(schemas.connections, async () => {
       deps.expand();
       return { ok: true, data: null };
+    }),
+    [APP_PANEL_IPC.plugins]: guarded(schemas.connections, async () => ({ ok: true, data: deps.plugins.list() })),
+    [APP_PANEL_IPC.setPlugin]: guarded(schemas.setPlugin, async ({ id, on }) =>
+      (deps.plugins.setEnabled(id, on) ? { ok: true, data: deps.plugins.list() } : { ok: false, error: 'Plugin desconhecido.' })),
+    [APP_PANEL_IPC.setPluginValue]: guarded(schemas.setPluginValue, async ({ id, key, value }) =>
+      (deps.plugins.setValue(id, key, value) ? { ok: true, data: deps.plugins.list() } : { ok: false, error: 'Ajuste desconhecido.' })),
+    [APP_PANEL_IPC.openPluginsFolder]: guarded(schemas.connections, async () => {
+      deps.plugins.openFolder();
+      return { ok: true, data: null };
+    }),
+    [APP_PANEL_IPC.rescanPlugins]: guarded(schemas.connections, async () => {
+      deps.plugins.rescan();
+      return { ok: true, data: deps.plugins.list() };
     }),
     [APP_PANEL_IPC.terminalPickFolder]: guarded(schemas.connections, async () => ({ ok: true, data: await deps.terminal.pickFolder() })),
     [APP_PANEL_IPC.terminalStart]: guarded(schemas.terminalStart, async ({ cols, rows, claude }) => ({ ok: true, data: deps.terminal.start(cols, rows, claude) })),

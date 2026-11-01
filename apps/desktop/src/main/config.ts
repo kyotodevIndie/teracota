@@ -22,6 +22,33 @@ export interface Config {
   uiTheme?: ThemeId;
   /** Opacidade do vidro dos cartões; ausente = padrão */
   uiGlass?: number;
+  /** Plugins: ligado, permissões aprovadas e valores dos ajustes, por id */
+  plugins?: Record<string, PluginConfig>;
+}
+
+export interface PluginConfig {
+  enabled: boolean;
+  /** Permissões que o usuário aprovou ao ligar */
+  approved: string[];
+  values: Record<string, number | boolean | string>;
+}
+
+function parsePlugins(raw: unknown): Record<string, PluginConfig> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const out: Record<string, PluginConfig> = {};
+  for (const [id, v] of Object.entries(raw as Record<string, unknown>)) {
+    const o = (v ?? {}) as Record<string, unknown>;
+    const values: PluginConfig['values'] = {};
+    for (const [k, x] of Object.entries((o.values ?? {}) as Record<string, unknown>)) {
+      if (typeof x === 'number' || typeof x === 'boolean' || typeof x === 'string') values[k] = x;
+    }
+    out[id] = {
+      enabled: o.enabled === true,
+      approved: Array.isArray(o.approved) ? o.approved.filter((p): p is string => typeof p === 'string') : [],
+      values,
+    };
+  }
+  return out;
 }
 
 /** Opacidade do vidro aceita (fora disso o texto some ou vira um bloco opaco) */
@@ -52,6 +79,7 @@ export function loadConfig(): Config {
       ...(typeof raw.x === 'number' && typeof raw.y === 'number' && { x: raw.x, y: raw.y }),
       ...(raw.reducedMotion === true && { reducedMotion: true }),
       ...(THEMES.includes(raw.uiTheme as ThemeId) && { uiTheme: raw.uiTheme }),
+      ...(parsePlugins(raw.plugins) && { plugins: parsePlugins(raw.plugins) }),
       ...(typeof raw.uiGlass === 'number' && raw.uiGlass >= GLASS_RANGE.min && raw.uiGlass <= GLASS_RANGE.max && { uiGlass: raw.uiGlass }),
       // `ui`, `companion` e `companionMuted` eram do Mini Companion (removido): são descartados,
       // e quem estava no modo mini volta pra Tera completa

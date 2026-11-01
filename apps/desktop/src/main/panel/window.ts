@@ -14,6 +14,8 @@ import { PANEL_WIDTH, placePanel } from './anchor';
 const USE_SHAPE = process.platform === 'linux';
 const MAX_RECTS = 64;
 const MAX_HEIGHT = 4000;
+/** Clique fora fecha; um clique na Tera logo depois não reabre */
+const BLUR_TOGGLE_MS = 400;
 
 export interface PanelWindowOptions {
   /** Janela da Tera onde a interface fica presa (null = sem Tera na tela) */
@@ -47,6 +49,10 @@ export class PanelWindow {
   private contentHeight = 480;
   private shape: unknown = null;
   private lastPlacement = '';
+  /** Um diálogo do sistema (escolher pasta) está aberto: perder o foco pra ele não fecha */
+  private dialogOpen = false;
+  /** Quando fechou por clicar fora (o mesmo clique, se foi na Tera, não reabre) */
+  private blurHiddenAt = 0;
 
   constructor(private readonly opts: PanelWindowOptions) {}
 
@@ -86,7 +92,20 @@ export class PanelWindow {
   /** Clique na Tera: abre; se já está aberta por inteiro, fecha */
   toggle(): void {
     if (this.visible && this.mode === 'full') this.hide();
+    // o clique na Tera já fechou a interface (perdeu o foco): esse clique era pra fechar
+    else if (Date.now() - this.blurHiddenAt < BLUR_TOGGLE_MS) this.blurHiddenAt = 0;
     else this.show();
+  }
+
+  /** Roda um diálogo do sistema sem a interface fechar por perder o foco */
+  async withDialog<T>(fn: () => Promise<T>): Promise<T> {
+    this.dialogOpen = true;
+    try {
+      return await fn();
+    } finally {
+      this.dialogOpen = false;
+      this.win?.focus();
+    }
   }
 
   /** Recolhe sem encerrar nada */
@@ -203,6 +222,12 @@ export class PanelWindow {
       this.hide();
     });
     win.on('closed', () => { if (this.win === win) this.win = null; });
+    // clicou fora: fecha (como um menu); o pedido sozinho (peek) não tem foco e fica
+    win.on('blur', () => {
+      if (this.quitting || this.dialogOpen || this.mode !== 'full' || !win.isVisible()) return;
+      this.blurHiddenAt = Date.now();
+      this.hide();
+    });
     win.loadFile(path.join(__dirname, 'renderer', 'panel.html'));
     this.win = win;
   }

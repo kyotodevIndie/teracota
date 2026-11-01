@@ -28,6 +28,7 @@ export class EntityManager {
   private pendingMcp: { key: string; at: number } | null = null;
   private readonly liveListeners = new Set<() => void>();
   private readonly homeMoveListeners = new Set<() => void>();
+  private readonly speechListeners = new Set<(text: string, from?: string) => void>();
   /** A interface está aberta presa na Tera: ela não sai passeando */
   private held = false;
 
@@ -155,6 +156,11 @@ export class EntityManager {
     return this.entities.find((e) => e === this.home && e.alive) ?? this.entities.find((e) => e.alive);
   }
 
+  /** A Tera principal falou (a interface aberta cobre o balão dela e mostra a fala) */
+  onSpeech(cb: (text: string, from?: string) => void): void {
+    this.speechListeners.add(cb);
+  }
+
   /** A Tera principal mudou de lugar (passeio, arrasto) ou foi recriada */
   onHomeMove(cb: () => void): () => void {
     this.homeMoveListeners.add(cb);
@@ -169,6 +175,14 @@ export class EntityManager {
 
   get prefs(): { moveMode: MoveMode; reducedMotion: boolean; entityMode: EntityMode } {
     return { moveMode: this.moveMode, reducedMotion: this.reducedMotion, entityMode: this.mode };
+  }
+
+  get pluginConfig(): NonNullable<Config['plugins']> {
+    return this.config.plugins ?? {};
+  }
+
+  setPluginConfig(plugins: NonNullable<Config['plugins']>): void {
+    this.updateConfig({ plugins });
   }
 
   get uiPrefs(): Pick<Config, 'uiTheme' | 'uiGlass'> {
@@ -359,6 +373,7 @@ export class EntityManager {
       moveMode: this.moveMode,
       // só a primeira Tera lembra a posição entre execuções
       onSettle: persist ? ({ x, y }) => this.updateConfig({ x, y }) : undefined,
+      onSay: persist ? (text, from) => { for (const cb of this.speechListeners) cb(text, from); } : undefined,
     });
     entity.win.on('closed', () => { this.entities = this.entities.filter((e) => e !== entity); });
     entity.win.on('move', () => { if (entity === this.homeEntity) for (const cb of this.homeMoveListeners) cb(); });

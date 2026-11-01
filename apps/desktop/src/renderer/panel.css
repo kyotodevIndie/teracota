@@ -139,8 +139,14 @@ code { font-family: ui-monospace, monospace; font-size: 12px; padding: 1px 5px; 
 .banner.error { background: rgba(239, 68, 68, 0.85); border: 1px solid rgba(248, 113, 113, 0.6); color: #fff; font-weight: 500; text-align: left; }
 
 
-/* ---------- a pilha ---------- */
-#root { padding: 6px 10px; }
+/* ---------- a pilha ----------
+   A janela acompanha a altura do conteúdo, mas o redimensionamento chega um quadro depois.
+   Encostando o conteúdo do lado da Tera (embaixo quando a interface fica em cima), a troca
+   de aba não dá "piscada": o que muda é a ponta de longe. */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; justify-content: flex-end; }
+body:has(#root[data-side="below"]) { justify-content: flex-start; }
+#root { padding: 6px 10px; flex: none; }
 #stack { display: flex; flex-direction: column; gap: 8px; position: relative; }
 #full { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 .view { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; overflow-x: hidden; }
@@ -228,6 +234,19 @@ code { font-family: ui-monospace, monospace; font-size: 12px; padding: 1px 5px; 
 .option .n { width: 18px; height: 18px; flex: none; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; background: var(--selected); }
 .hint { font-size: 11px; color: var(--warn-text); }
 .card.ended { opacity: 0.75; }
+/* a fala da Tera (a interface cobre o balão dela): o cartão mais perto dela */
+.speech { flex-direction: row; align-items: baseline; gap: 8px; padding: 10px 14px; }
+.speech-who { font-weight: 700; color: var(--accent); flex: none; }
+.plugin-card .s-agent { margin-left: auto; }
+.plugin-card[data-level="done"] { border-color: rgba(52, 211, 153, 0.55); }
+.plugin-card .bar { margin-top: 2px; }
+.plugin { display: flex; flex-direction: column; gap: 8px; }
+.plugin-head { display: flex; align-items: center; gap: 8px; }
+.plugin-head .grow { display: flex; flex-direction: column; gap: 1px; }
+.plugin .perms { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+.plugin .err { color: var(--danger); font-size: 12px; }
+.plugin .setting { display: grid; grid-template-columns: minmax(0, 1fr) 110px; gap: 8px; align-items: center; font-size: 12px; color: var(--muted); }
+.plugin .setting input[type="number"], .plugin .setting input[type="text"] { width: 100%; padding: 4px 8px; }
 
 /* ---------- peek (só o pedido) ---------- */
 #peek { display: flex; flex-direction: column; gap: 8px; }
@@ -239,6 +258,14 @@ code { font-family: ui-monospace, monospace; font-size: 12px; padding: 1px 5px; 
 .seg { display: flex; gap: 4px; padding: 4px; flex: none; }
 .seg button { flex: 1; height: 32px; padding: 0 8px; border: 1px solid transparent; background: transparent; box-shadow: none; color: var(--muted); font-size: 12px; border-radius: 12px; white-space: nowrap; }
 .seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--selected); border-color: var(--edge); color: var(--text); font-weight: 600; }
+
+/* barra do terminal */
+.folder-btn { display: flex; align-items: center; gap: 6px; min-width: 0; max-width: 70%; padding: 4px 10px; }
+.folder-btn svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+#term-cwd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.term-state { font-size: 11px; color: var(--ok); }
+button.danger-btn { color: #fff; background: rgba(239, 68, 68, 0.8); border-color: transparent; font-weight: 600; padding: 4px 10px; }
+button.danger-btn:hover:not(:disabled) { background: rgba(239, 68, 68, 0.95); }
 
 /* ---------- barra de baixo ---------- */
 #nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; height: 60px; flex: none; padding: 6px; border-radius: 20px; }
@@ -271,7 +298,6 @@ code { font-family: ui-monospace, monospace; font-size: 12px; padding: 1px 5px; 
 /* ---------- terminal ---------- */
 .term-card { padding: 0; gap: 0; overflow: hidden; flex: none; height: 380px; }
 .term-bar { padding: 6px 8px 6px 10px; border-bottom: 1px solid var(--edge); }
-#term-cwd { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #term-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; text-align: center; color: var(--muted); line-height: 1.5; }
 #term { flex: 1; min-height: 0; padding: 8px 0 0 10px; background: var(--term-bg); }
 #term .xterm { height: 100%; }
@@ -309,3 +335,9 @@ code { font-family: ui-monospace, monospace; font-size: 12px; padding: 1px 5px; 
   /* biome-ignore lint/complexity/noImportantStyles: menos movimento vence */
   * { transition: none !important; animation: none !important; }
 }
+
+/* ordem da pilha: a fala da Tera fica do lado dela */
+#full { display: flex; flex-direction: column; }
+#root[data-side="above"] #speech { order: 10; }
+#root[data-side="above"] #nav { order: 9; }
+#root[data-side="below"] #speech { order: -1; }

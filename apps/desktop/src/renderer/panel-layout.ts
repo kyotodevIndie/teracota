@@ -7,13 +7,16 @@ import type { PanelPlacement } from '../shared/live';
 const MAX_RECTS = 60;
 const PAD = 3;
 
-/** Retângulos dos elementos que recebem clique (os .hit visíveis), com uma folga */
-export function hitRects(nodes: Iterable<Element>, maxRects = MAX_RECTS): LayoutRect[] {
+/**
+ * Retângulos dos elementos que recebem clique (os .hit visíveis), com uma folga, medidos a
+ * partir de `originY` (o topo do conteúdo: a janela tem a altura dele).
+ */
+export function hitRects(nodes: Iterable<Element>, maxRects = MAX_RECTS, originY = 0): LayoutRect[] {
   const out: LayoutRect[] = [];
   for (const n of nodes) {
     const r = n.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) continue;
-    out.push({ x: Math.floor(r.left - PAD), y: Math.floor(r.top - PAD), width: Math.ceil(r.width + PAD * 2), height: Math.ceil(r.height + PAD * 2) });
+    out.push({ x: Math.floor(r.left - PAD), y: Math.floor(r.top - originY - PAD), width: Math.ceil(r.width + PAD * 2), height: Math.ceil(r.height + PAD * 2) });
   }
   if (out.length <= maxRects) return out;
   // cartões demais: um retângulo só, cobrindo todos
@@ -44,8 +47,13 @@ export function mountLayout(api: AppPanelApi, onPlacement: (p: PanelPlacement) =
   function measure(): void {
     queued = false;
     fitViews();
-    const visible = [...document.querySelectorAll('.hit')].filter((n) => (n as HTMLElement).offsetParent !== null);
-    api.layout(Math.max(1, Math.ceil(root.getBoundingClientRect().height)), hitRects(visible));
+    // a aba com rolagem conta como um retângulo só (a área dela): os cartões dentro andam
+    // ao rolar, e o recorte também corta o desenho, então ele não pode seguir os cartões
+    const scrolling = [...document.querySelectorAll<HTMLElement>('.view:not([hidden])')].filter((v) => v.scrollHeight > v.clientHeight + 1);
+    const visible = [...document.querySelectorAll('.hit')]
+      .filter((n) => (n as HTMLElement).offsetParent !== null && !scrolling.some((v) => v.contains(n)));
+    const r = root.getBoundingClientRect();
+    api.layout(Math.max(1, Math.ceil(r.height)), hitRects([...visible, ...scrolling], MAX_RECTS, r.top));
   }
 
   const changed = () => {

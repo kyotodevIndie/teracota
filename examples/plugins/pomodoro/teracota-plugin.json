@@ -1,0 +1,15 @@
+{
+  "id": "pomodoro",
+  "name": "Pomodoro",
+  "version": "0.1.0",
+  "description": "Ciclos de foco e pausa: um cartão com o tempo, e a Tera avisa quando acaba.",
+  "author": "Teracota",
+  "main": "main.js",
+  "permissions": ["say", "cards", "http"],
+  "badge": { "text": "🍅", "color": "#e5484d" },
+  "settings": [
+    { "key": "foco", "label": "Minutos de foco", "type": "number", "default": 25, "min": 1, "max": 120 },
+    { "key": "pausa", "label": "Minutos de pausa", "type": "number", "default": 5, "min": 1, "max": 60 },
+    { "key": "auto", "label": "Começar sozinho ao ligar", "type": "boolean", "default": true }
+  ]
+}

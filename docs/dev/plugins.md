@@ -1,6 +1,52 @@
 # Plugins da Tera — especificação (proposta)
 
-> Estado: **proposta para discussão**, nada implementado. Pontos em aberto no fim.
+> Estado: **primeira versão implementada** (cartões, fala, sessões de agente, limites de
+> uso, eventos por HTTP, ajustes e permissões). Exemplo pronto: `examples/plugins/pomodoro`.
+> O resto desta página é o plano; "Como escrever um plugin hoje" logo abaixo é o que vale.
+
+## Como escrever um plugin hoje
+
+Uma pasta dentro da pasta de plugins (Ajustes → Plugins → "Abrir a pasta de plugins"; em
+desenvolvimento dá pra apontar outra com `TERACOTA_PLUGINS_DIR`), com:
+
+`teracota-plugin.json`:
+
+```json
+{
+  "id": "pomodoro",
+  "name": "Pomodoro",
+  "version": "0.1.0",
+  "description": "Ciclos de foco e pausa",
+  "main": "main.js",
+  "permissions": ["say", "cards", "http"],
+  "badge": { "text": "🍅", "color": "#e5484d" },
+  "settings": [{ "key": "foco", "label": "Minutos de foco", "type": "number", "default": 25, "min": 1, "max": 120 }]
+}
+```
+
+`main.js`: JavaScript comum, que roda numa página escondida e isolada (sem Node, sem
+arquivos, sem abrir janelas; rede só `https` pros hosts declarados em `network:<host>`).
+Só fala com a Tera pelo objeto `tera`:
+
+| API | Permissão | O que faz |
+|---|---|---|
+| `tera.say(texto, { expression })` | `say` | A Tera fala (no máximo uma vez a cada 3 s) |
+| `tera.card.set(id, { title, line, level, progress })` / `tera.card.remove(id)` | `cards` | Cartão na pilha "Agora" (até 5 por plugin); `level`: `normal`, `attention`, `done`; `progress` de 0 a 1 |
+| `tera.session.update(id, { project, working, activity, request })` / `tera.session.end(id)` | `agent` | Sessão de um agente, igual às do Claude Code (`request` = pergunta pro usuário) |
+| `tera.usage.set([{ id: 'five_hour', usedPct, resetsAt }])` | `agent` | Chip de limite do plugin no topo |
+| `tera.onHttp(({ path, body }) => …)` | `http` | Recebe `POST 127.0.0.1:7777/plugins/<id>/<path>` |
+| `tera.settings`, `tera.onSettings(cb)` | — | Valores dos ajustes declarados no manifesto |
+| `tera.log(texto)` | — | Escreve no log do app |
+
+Ligar um plugin mostra as permissões em português e pede aprovação; se uma versão nova
+pedir mais permissões, ele fica desligado até o usuário aprovar de novo. Mais de 30
+chamadas por segundo são descartadas; um plugin que trava vira um erro nos Ajustes.
+
+O que mudou em relação ao plano: o plugin **não desenha** (sem `ui.html`): manda dados e a
+Tera desenha com os componentes dela (cartão, chip, ajustes), o que já segue o tema e evita
+HTML de terceiros na interface. O Claude Code continua como integração embutida, porque
+precisa de Node (instala o plugin dele, mexe no `settings.json`), o que um plugin isolado
+não tem.
 
 Plugins estendem a Tera sem mexer no código dela: conectam novas IAs, põem cartões e abas
 na interface, fazem a Tera reagir e trazem skins. Plugin é código de terceiros, então a

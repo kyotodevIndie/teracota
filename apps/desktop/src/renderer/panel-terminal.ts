@@ -29,6 +29,7 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
   const shellBtn = $('term-shell') as HTMLButtonElement;
   const killBtn = $('term-kill') as HTMLButtonElement;
   const folderBtn = $('term-folder') as HTMLButtonElement;
+  const stateEl = $('term-state');
 
   const term = new Terminal({
     fontFamily: 'ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace',
@@ -63,6 +64,7 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
     empty.hidden = running;
     box.hidden = !running;
     killBtn.hidden = !running;
+    stateEl.hidden = !running;
   }
 
   async function start(claude: boolean): Promise<void> {
@@ -108,10 +110,14 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
 
   claudeBtn.onclick = () => void start(true);
   shellBtn.onclick = () => void start(false);
-  killBtn.onclick = async () => { unwrap(await api.kill()); };
+  killBtn.onclick = async () => {
+    unwrap(await api.kill());
+    running = false;
+    render();
+  };
   folderBtn.onclick = async () => {
     const label = unwrap(await api.pickFolder());
-    if (label) cwdEl.textContent = running ? `${label} (vale ao reabrir)` : label;
+    if (label) cwdEl.textContent = running ? `${label} (vale ao abrir de novo)` : label;
   };
 
   new ResizeObserver(() => refit()).observe(box);

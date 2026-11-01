@@ -34,6 +34,13 @@ const appApi: AppPanelApi = {
   onUsage: (cb) => { ipcRenderer.on(APP_PANEL_IPC.usageChanged, (_e, v) => cb(v)); },
   onPrefs: (cb) => { ipcRenderer.on(APP_PANEL_IPC.prefsChanged, (_e, v) => cb(v)); },
   onPlacement: (cb) => { ipcRenderer.on(APP_PANEL_IPC.placement, (_e, v) => cb(v)); },
+  plugins: () => ipcRenderer.invoke(APP_PANEL_IPC.plugins),
+  setPlugin: (id, on) => ipcRenderer.invoke(APP_PANEL_IPC.setPlugin, { id, on }),
+  setPluginValue: (id, key, value) => ipcRenderer.invoke(APP_PANEL_IPC.setPluginValue, { id, key, value }),
+  openPluginsFolder: () => ipcRenderer.invoke(APP_PANEL_IPC.openPluginsFolder),
+  rescanPlugins: () => ipcRenderer.invoke(APP_PANEL_IPC.rescanPlugins),
+  onSpeech: (cb) => { ipcRenderer.on(APP_PANEL_IPC.speech, (_e, v) => cb(v)); },
+  onPlugins: (cb) => { ipcRenderer.on(APP_PANEL_IPC.pluginsChanged, (_e, v) => cb(v)); },
   terminal: {
     pickFolder: () => ipcRenderer.invoke(APP_PANEL_IPC.terminalPickFolder),
     start: (cols, rows, claude) => ipcRenderer.invoke(APP_PANEL_IPC.terminalStart, { cols, rows, claude }),

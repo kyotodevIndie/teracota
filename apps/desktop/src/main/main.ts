@@ -14,6 +14,7 @@ import { startEventServer } from './server';
 import { loadFallbackSkin, loadSkin } from './skins';
 import { getAgentPanel, initAgentPanel } from './panel';
 import { usageStore } from './usage';
+import { PluginHost } from './plugins/host';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -95,7 +96,20 @@ if (relaunchingForX11) {
     app.dock?.hide(); // macOS: vive na barra de menus, sem ícone no Dock
     manager = new EntityManager(loadConfig());
     manager.start();
-    initAgentPanel({ onSignal: (s) => manager.handleSignal(s), manager });
+    const panel = initAgentPanel({ onSignal: (s) => manager.handleSignal(s), manager });
+    // plugins: cada um isolado numa página escondida (plugins/host.ts)
+    const plugins = new PluginHost({
+      dir: process.env.TERACOTA_PLUGINS_DIR || path.join(app.getPath('userData'), 'plugins'),
+      config: () => manager.pluginConfig,
+      saveConfig: (p) => manager.setPluginConfig(p),
+      say: (text, expression, from) => manager.broadcast({ say: text, from, ...(expression && { expression }) }),
+      signal: (s) => manager.handleSignal(s),
+      usage: (provider, windows) => usageStore.set(provider, windows),
+      changed: () => panel.pluginsChanged(),
+    }, __dirname);
+    panel.setPlugins(plugins);
+    plugins.start();
+    app.on('before-quit', () => plugins.stopAll());
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);
     void refreshSpeech();
@@ -105,6 +119,7 @@ if (relaunchingForX11) {
       onEvent: (incoming) => manager.handleEvent(incoming),
       onMcp: (event) => manager.handleMcp(event),
       onUsage: (provider, windows) => usageStore.set(provider, windows),
+      onPlugin: (id, subpath, body) => plugins.http(id, subpath, body),
     });
   });
 

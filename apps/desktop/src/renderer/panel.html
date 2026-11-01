@@ -45,13 +45,17 @@
         </div>
         <section id="terminal-tab" class="card glass hit term-card" role="tabpanel" aria-labelledby="tab-terminal">
           <div class="row term-bar">
-            <button id="term-folder" type="button" data-testid="term-folder">Pasta…</button>
-            <span id="term-cwd" class="note mono" data-testid="term-cwd">pasta pessoal</span>
+            <button id="term-folder" class="folder-btn" type="button" data-testid="term-folder" title="Pasta onde o terminal abre (o projeto em que o Claude vai trabalhar). Clique pra trocar.">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span id="term-cwd" class="mono" data-testid="term-cwd">pasta pessoal</span>
+            </button>
             <span class="spacer"></span>
-            <button id="term-kill" class="ghost" type="button" data-testid="term-kill" hidden>Fechar</button>
+            <span id="term-state" class="term-state" hidden>rodando</span>
+            <button id="term-kill" class="danger-btn" type="button" data-testid="term-kill" title="Fecha o terminal (o que estiver rodando nele é encerrado)" hidden>Encerrar terminal</button>
           </div>
           <div id="term-empty" class="empty">
             <span>O seu terminal, com o seu <code>claude</code> e o login que você já usa.</span>
+            <span class="note">Ele abre na pasta mostrada acima: troque pra pasta do projeto antes de abrir.</span>
             <span class="row center">
               <button id="term-claude" class="primary" type="button" data-testid="term-claude">Abrir o Claude</button>
               <button id="term-shell" type="button" data-testid="term-shell">Só o terminal</button>
@@ -144,7 +148,19 @@
         <h2 class="section">Agentes</h2>
         <div class="card glass hit"><ul id="agent-list" class="agents"></ul></div>
         <div id="usage-sources" class="cards"></div>
+
+        <h2 class="section">Plugins</h2>
+        <div id="plugin-list" class="cards" data-testid="plugin-list"></div>
+        <div class="row">
+          <button id="plugins-folder" type="button" data-testid="plugins-folder">Abrir a pasta de plugins</button>
+          <button id="plugins-rescan" class="ghost" type="button">Procurar de novo</button>
+        </div>
       </section>
+
+      <div id="speech" class="card glass hit speech" role="status" aria-live="polite" hidden>
+        <span class="speech-who">Tera</span>
+        <span id="speech-text"></span>
+      </div>
 
       <nav id="nav" class="glass hit" aria-label="Seções">
         <button type="button" data-view="now" aria-current="page">

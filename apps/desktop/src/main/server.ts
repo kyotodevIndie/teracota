@@ -4,6 +4,7 @@
 //   POST /event                 alias compatível da API acima
 //   POST /mcp                   servidor MCP (Streamable HTTP)
 //   POST <rotas de uso>         limites de uso dos agentes (rota de cada adapter)
+//   POST /plugins/<id>/...      eventos pra um plugin com a permissão "http"
 //   GET  /health
 // Documentação da API: docs/API.md
 import http from 'node:http';
@@ -22,6 +23,8 @@ export interface ServerHandlers {
   onSignal(signal: AgentSignal): void;
   onEvent(incoming: IncomingEvent): void;
   onMcp(event: CompanionEvent): void;
+  /** Evento pra um plugin; false = plugin desligado ou sem a permissão */
+  onPlugin?(id: string, subpath: string, body: unknown): boolean;
   /** Limites de uso de um agente, já lidos pelo adapter */
   onUsage?(provider: string, windows: UsageWindow[]): void;
 }
@@ -60,7 +63,9 @@ function isLocalClient(req: http.IncomingMessage, port: number): boolean {
   return host === `127.0.0.1:${port}` || host === `localhost:${port}`;
 }
 
-const knownRoute = (url: string) => url === '/mcp' || !!adapterForUsageRoute(url) || EVENT_ROUTES.includes(url) || !!adapterForRoute(url);
+const PLUGIN_ROUTE = /^\/plugins\/([a-z0-9][a-z0-9-]{1,39})(\/[\w./-]{0,200})?$/;
+
+const knownRoute = (url: string) => PLUGIN_ROUTE.test(url) || url === '/mcp' || !!adapterForUsageRoute(url) || EVENT_ROUTES.includes(url) || !!adapterForRoute(url);
 
 export function startEventServer(port: number, handlers: ServerHandlers): http.Server {
   const server = http.createServer(async (req, res) => {
@@ -102,6 +107,13 @@ export function startEventServer(port: number, handlers: ServerHandlers): http.S
         console.error('[teracota] erro no MCP:', err);
         if (!res.headersSent) res.writeHead(500).end();
       }
+      return;
+    }
+
+    const plugin = PLUGIN_ROUTE.exec(url);
+    if (plugin) {
+      const ok = handlers.onPlugin?.(plugin[1]!, plugin[2] ?? '/', body) ?? false;
+      res.writeHead(ok ? 204 : 404).end();
       return;
     }
 

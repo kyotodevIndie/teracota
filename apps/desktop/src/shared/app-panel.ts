@@ -2,6 +2,7 @@
 // contrato do Agent Bridge (@tera/agent-bridge/contract), que é só sobre sessões.
 import type { PanelResult } from '@tera/agent-bridge/contract';
 import type { LiveSnapshot, PanelPlacement, PrefsPatch, ProviderUsage, UiPrefs } from './live';
+import type { PluginStatus } from './plugins';
 
 export type PanelResultLike<T> = PanelResult<T>;
 
@@ -23,6 +24,14 @@ export const APP_PANEL_IPC = {
   setPrefs: 'tera:set-prefs',
   /** Do pedido (peek) pra interface inteira */
   expand: 'tera:expand',
+  plugins: 'tera:plugins',
+  setPlugin: 'tera:set-plugin',
+  setPluginValue: 'tera:set-plugin-value',
+  openPluginsFolder: 'tera:open-plugins-folder',
+  rescanPlugins: 'tera:rescan-plugins',
+  pluginsChanged: 'tera:plugins-changed',
+  /** main -> renderer: a Tera falou (com a interface aberta, a fala aparece nela) */
+  speech: 'tera:speech',
   /** renderer -> main, sem resposta: altura do conteúdo e recorte dos cartões */
   layout: 'tera:layout',
   /** main -> renderer */
@@ -89,6 +98,14 @@ export interface AppPanelApi {
   onUsage(cb: (usage: ProviderUsage[]) => void): void;
   onPrefs(cb: (prefs: UiPrefs) => void): void;
   onPlacement(cb: (placement: PanelPlacement) => void): void;
+  /** Plugins: lista, ligar (aprova as permissões pedidas), ajustes, pasta */
+  plugins(): Promise<PanelResult<PluginStatus[]>>;
+  setPlugin(id: string, on: boolean): Promise<PanelResult<PluginStatus[]>>;
+  setPluginValue(id: string, key: string, value: number | boolean | string): Promise<PanelResult<PluginStatus[]>>;
+  openPluginsFolder(): Promise<PanelResult<null>>;
+  rescanPlugins(): Promise<PanelResult<PluginStatus[]>>;
+  onPlugins(cb: (list: PluginStatus[]) => void): void;
+  onSpeech(cb: (s: { text: string; from?: string }) => void): void;
   /** Terminal embutido: roda o shell do usuário (e o `claude` dele) com o login que ele já tem */
   terminal: {
     /** Seletor de pasta do sistema; null = cancelou */

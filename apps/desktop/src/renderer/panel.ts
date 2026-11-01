@@ -360,6 +360,18 @@ api.onEvent((e) => {
   changed();
 });
 appApi.onLive((s) => live.render(s));
+// fala da Tera com a interface aberta: cartão perto dela por alguns segundos
+let speechTimer: number | undefined;
+appApi.onSpeech(({ text, from }) => {
+  $('speech-text').textContent = from ? `${text} (${from})` : text;
+  $('speech').hidden = false;
+  changed();
+  clearTimeout(speechTimer);
+  speechTimer = window.setTimeout(() => {
+    $('speech').hidden = true;
+    changed();
+  }, 5000);
+});
 appApi.onUsage((u) => usage.render(u));
 window.addEventListener('focus', () => {
   void settings.refreshAgents();

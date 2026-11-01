@@ -25,6 +25,13 @@ function setup() {
     setPrefs: vi.fn(async (patch: Partial<UiPrefs>) => ({ ...PREFS, ...patch })),
     expand: vi.fn(),
     layout: vi.fn(),
+    plugins: {
+      list: vi.fn(() => []),
+      setEnabled: vi.fn((id: string) => id === 'pomodoro'),
+      setValue: vi.fn((id: string) => id === 'pomodoro'),
+      openFolder: vi.fn(),
+      rescan: vi.fn(),
+    },
     terminal: {
       pickFolder: vi.fn(async () => 'projeto'),
       start: vi.fn((): { running: boolean; cwdLabel: string | null; scrollback: string } => ({ running: true, cwdLabel: 'projeto', scrollback: '' })),
@@ -144,5 +151,17 @@ describe('IPC da interface (agora, temas e layout)', () => {
     l[APP_PANEL_IPC.layout]!(PANEL.sender, { height: 300, rects: Array.from({ length: 65 }, () => ({})) });
     expect(deps.layout).toHaveBeenCalledTimes(1);
     expect(deps.layout).toHaveBeenCalledWith(300, []);
+  });
+});
+
+describe('IPC da interface (plugins)', () => {
+  it('ligar/desligar e ajustes validados; plugin desconhecido dá erro', async () => {
+    const { h, deps } = setup();
+    expect(await h[APP_PANEL_IPC.setPlugin]!(PANEL.sender, { id: 'pomodoro', on: true })).toEqual({ ok: true, data: [] });
+    expect(await h[APP_PANEL_IPC.setPlugin]!(PANEL.sender, { id: 'outro', on: true })).toEqual({ ok: false, error: 'Plugin desconhecido.' });
+    expect(await h[APP_PANEL_IPC.setPluginValue]!(PANEL.sender, { id: 'pomodoro', key: 'minutos', value: 25 })).toEqual({ ok: true, data: [] });
+    expect(await h[APP_PANEL_IPC.setPluginValue]!(PANEL.sender, { id: 'pomodoro', key: 'minutos', value: { x: 1 } })).toEqual({ ok: false, error: 'Requisição inválida.' });
+    expect(await h[APP_PANEL_IPC.setPlugin]!('outra-janela', { id: 'pomodoro', on: true })).toEqual({ ok: false, error: 'Requisição inválida.' });
+    expect(deps.plugins.setEnabled).toHaveBeenCalledTimes(2);
   });
 });

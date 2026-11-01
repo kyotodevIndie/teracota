@@ -6,6 +6,14 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 
 ## [Não lançado]
 
+### Corrigido
+- Linux: partes da Tera (braço, cauda, ícone) sumiam por um instante quando a pose mudava;
+  arrastando, o balanço cortava as pernas
+- A interface fecha ao clicar fora; trocar de aba não pisca; rolar a lista não corta mais
+  os cartões
+- Com a interface aberta, as falas da Tera aparecem nela (o balão ficava por baixo)
+- Terminal: botão claro pra encerrar e a pasta onde ele abre à vista
+
 ### Mudou
 - **Interface nova, presa na Tera**: cartões de vidro empilhados como notificações, abrindo
   em cima dela (sem espaço, embaixo) e acompanhando quando ela é arrastada; a Tera fica
@@ -21,6 +29,10 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Plugins**: uma pasta com manifesto + JS que roda isolado (sem Node, rede só nos sites
+  declarados) e fala com a Tera por uma API pequena: cartões na pilha, falas, sessões de
+  agente, limites de uso, eventos por HTTP e ajustes próprios. Ligar mostra as permissões e
+  pede aprovação. Exemplo: Pomodoro (`examples/plugins/pomodoro`)
 - **Skin Studio e `tera-skin`** (pra quem cria skins): editor visual de rigs no navegador
   (montar camadas, pivôs, poses, expressões e movimentos, testar cada estado do app) e um
   comando pra criar, validar e renderizar a skin com o motor da Tera, gerando uma folha de

@@ -5,7 +5,7 @@ import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { watch as fsWatch } from 'node:fs';
 
 const watch = process.argv.includes('--watch');
-const STATIC = ['index.html', 'style.css', 'panel.html', 'panel.css'];
+const STATIC = ['index.html', 'style.css', 'panel.html', 'panel.css', 'plugin-host.html'];
 
 const common = { bundle: true, logLevel: 'info', sourcemap: 'linked' };
 // Ficam de fora do bundle: o Electron, o Agent SDK (ESM com import.meta, carregado sob
@@ -17,6 +17,7 @@ const builds = [
   { ...node, entryPoints: ['src/main/main.ts'], outfile: 'dist/main.js', format: 'cjs' },
   { ...node, entryPoints: ['src/preload/preload.ts'], outfile: 'dist/preload.js', format: 'cjs' },
   { ...node, entryPoints: ['src/preload/panel-preload.ts'], outfile: 'dist/panel-preload.js', format: 'cjs' },
+  { ...node, entryPoints: ['src/preload/plugin-preload.ts'], outfile: 'dist/plugin-preload.js', format: 'cjs' },
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/app.ts'], outfile: 'dist/renderer/app.js', format: 'iife' },
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/panel.ts'], outfile: 'dist/renderer/panel.js', format: 'iife' },
   { ...node, entryPoints: ['scripts/agent-smoke.ts'], outfile: 'dist/scripts/agent-smoke.js', format: 'cjs' },
