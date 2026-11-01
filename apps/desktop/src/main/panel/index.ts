@@ -14,6 +14,10 @@ import { BRIDGE_PROVIDERS } from '../integrations';
 import type { EntityManager } from '../manager';
 import { adapterById, connectAgent, connectionStatus, connectOpenSessions, setSpeech } from '../connect-flow';
 import { APP_PANEL_IPC } from '../../shared/app-panel';
+import { DEFAULT_GLASS, type PrefsPatch, type UiPrefs } from '../../shared/live';
+import { getPort } from '../../shared/protocol';
+import { ADAPTERS } from '../integrations';
+import { usageStore } from '../usage';
 import { makeAppPanelHandlers, makeTerminalListeners } from './app-ipc';
 import { EmbeddedTerminal, type SpawnPty } from './terminal';
 import { makePanelHandlers } from './ipc';
@@ -34,7 +38,7 @@ export interface AgentPanelOptions {
 
 export class AgentPanel {
   readonly bridge = new BridgeManager([...BRIDGE_PROVIDERS, ...(simEnabled() ? [createSimulatedProvider()] : [])]);
-  readonly window = new PanelWindow();
+  readonly window: PanelWindow;
   /** Terminal embutido (shell do usuário + o `claude` dele): um por vez, vive enquanto o app vive */
   readonly terminal = new EmbeddedTerminal(spawnPty, {
     data: (data) => this.window.sendRaw(APP_PANEL_IPC.terminalData, data),
@@ -42,8 +46,21 @@ export class AgentPanel {
   });
   /** Pastas temporárias da simulação criadas por este app (removidas ao sair) */
   private readonly simDirs = new Set<string>();
+  private readonly managerRef?: EntityManager;
+
+  /** Pedidos das IAs já mostrados (não reabre o mesmo pedido) */
+  private seenRequests = new Set<string>();
 
   constructor(opts: AgentPanelOptions = {}) {
+    const manager = opts.manager;
+    this.managerRef = manager;
+    this.window = new PanelWindow({
+      anchor: () => manager?.homeEntity?.win.getBounds() ?? null,
+      onVisibility: (visible) => manager?.setHeld(visible),
+    });
+    manager?.onHomeMove(() => this.window.reposition());
+    manager?.onLiveChange(() => this.pushLive());
+    usageStore.onChange(() => this.window.sendRaw(APP_PANEL_IPC.usageChanged, usageStore.list()));
     this.bridge.onEvent((e) => this.window.send(e));
     if (opts.onSignal) linkBridgeToCompanion(this.bridge, opts.onSignal, (h) => this.bridge.describe(h));
 
@@ -71,7 +88,6 @@ export class AgentPanel {
       ipcMain.handle(channel, (event, payload: unknown) => handler(event, payload));
     }
 
-    const manager = opts.manager;
     const isPanelSender = (sender: unknown) => this.window.isSender((sender as { sender?: unknown } | null)?.sender);
     const terminal = {
       pickFolder: async () => {
@@ -88,13 +104,20 @@ export class AgentPanel {
       write: (data: string) => this.terminal.write(data),
       resize: (cols: number, rows: number) => this.terminal.resize(cols, rows),
     };
-    for (const [channel, listener] of Object.entries(makeTerminalListeners({ isPanelSender, terminal }))) {
+    const layout = (height: number, rects: unknown) => this.window.layout(height, rects);
+    for (const [channel, listener] of Object.entries(makeTerminalListeners({ isPanelSender, terminal, layout }))) {
       ipcMain.on(channel, (event, payload: unknown) => listener(event, payload));
     }
     const appHandlers = makeAppPanelHandlers({
       isPanelSender,
       terminal,
-      minimize: () => this.window.native?.minimize(),
+      minimize: () => this.window.hide(),
+      live: () => manager?.liveSnapshot() ?? { active: [], ended: [] },
+      usage: () => usageStore.list(),
+      prefs: () => this.prefs(),
+      setPrefs: (patch) => this.setPrefs(patch),
+      expand: () => this.window.show(),
+      layout,
       connections: connectionStatus,
       connect: async (id) => {
         const adapter = adapterById(id);
@@ -141,6 +164,66 @@ export class AgentPanel {
 
   show(): void {
     this.window.show();
+  }
+
+  /** Clique na Tera: abre ou fecha */
+  toggle(): void {
+    this.window.toggle();
+  }
+
+  /** Sessões mudaram: atualiza a interface e, se chegou um pedido novo, mostra ele sozinho */
+  private pushLive(): void {
+    const snapshot = this.manager?.liveSnapshot();
+    if (!snapshot) return;
+    this.window.sendRaw(APP_PANEL_IPC.liveChanged, snapshot);
+    const open = snapshot.active.filter((s) => s.request).map((s) => `${s.key}@${s.request!.at}`);
+    const fresh = open.some((k) => !this.seenRequests.has(k));
+    this.seenRequests = new Set(open);
+    if (fresh && this.manager?.isVisible !== false) this.window.peek();
+    else if (!open.length && this.window.visible && this.window.currentMode === 'peek') this.window.hide();
+  }
+
+  private get manager(): EntityManager | undefined {
+    return this.managerRef;
+  }
+
+  private async prefs(): Promise<UiPrefs> {
+    const m = this.managerRef;
+    const ui = m?.uiPrefs;
+    const connections = await connectionStatus();
+    return {
+      theme: ui?.uiTheme ?? 'vidro',
+      glass: ui?.uiGlass ?? DEFAULT_GLASS,
+      moveMode: m?.prefs.moveMode ?? 'roam',
+      reducedMotion: m?.prefs.reducedMotion ?? false,
+      entityMode: m?.prefs.entityMode ?? 'single',
+      // só as IAs instaladas oferecem os limites
+      usageSources: ADAPTERS.filter((a) => a.usage && connections.find((c) => c.id === a.id)?.status !== 'unavailable')
+        .map((a) => ({ provider: a.id, label: a.usage!.label, description: a.usage!.description, enabled: a.usage!.enabled() })),
+    };
+  }
+
+  private async setPrefs(patch: PrefsPatch): Promise<UiPrefs> {
+    const m = this.managerRef;
+    if (m) {
+      if (patch.theme !== undefined || patch.glass !== undefined) {
+        m.setUiPrefs({ uiTheme: patch.theme ?? m.uiPrefs.uiTheme, uiGlass: patch.glass ?? m.uiPrefs.uiGlass });
+      }
+      if (patch.moveMode !== undefined) m.setMoveMode(patch.moveMode);
+      if (patch.reducedMotion !== undefined) m.setReducedMotion(patch.reducedMotion);
+      if (patch.entityMode !== undefined) m.setEntityMode(patch.entityMode);
+    }
+    if (patch.usage) {
+      // cada integração sabe o que mexer no agente (e devolve como era ao desligar)
+      const usage = ADAPTERS.find((a) => a.id === patch.usage!.provider)?.usage;
+      if (!usage) throw new Error('usage');
+      const ok = patch.usage.on ? usage.enable(getPort()) : usage.disable();
+      if (!ok) throw new Error('usage');
+      if (!patch.usage.on) usageStore.set(patch.usage.provider, []);
+    }
+    const prefs = await this.prefs();
+    this.window.sendRaw(APP_PANEL_IPC.prefsChanged, prefs);
+    return prefs;
   }
 }
 

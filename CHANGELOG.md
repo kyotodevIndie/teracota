@@ -7,6 +7,10 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 ## [Não lançado]
 
 ### Mudou
+- **Interface nova, presa na Tera**: cartões de vidro empilhados como notificações, abrindo
+  em cima dela (sem espaço, embaixo) e acompanhando quando ela é arrastada; a Tera fica
+  parada enquanto a interface está aberta. Abas embaixo: Agora, Terminal, Sessões e Ajustes.
+  Clicar na Tera de novo fecha
 - **Clicar na Tera abre a interface dela** (uma janela só; fechar esconde e a Tera continua
   no desktop). Conectar ao Claude Code virou um botão explícito na interface; a oferta da
   primeira execução só convida a abrir a janela
@@ -17,6 +21,17 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Sessões ao vivo**: todas as sessões do Claude Code do PC (terminal, IDE, aba Terminal da
+  Tera) aparecem com o que estão fazendo (lendo, editando, rodando comando…) e as
+  encerradas há pouco
+- **Pedidos das IAs**: quando uma IA pede permissão ou faz uma pergunta (com as
+  alternativas), o pedido vai pro topo da pilha; com a interface fechada, aparece sozinho
+  perto da Tera, sem roubar o foco. A resposta continua no terminal da sessão
+- **Limites de uso por IA**: um chip por IA no topo (a % da janela mais apertada) e, com o
+  mouse em cima, o balão com cada limite e quando reinicia. Para o Claude, liga nos Ajustes:
+  a Tera passa a ler os limites do plano pela statusline do Claude Code (a sua continua
+  aparecendo; desligar devolve a anterior)
+- **Temas** nos Ajustes (Vidro, Aurora, Claro, Contraste) e a opacidade do vidro
 - **Terminal na janela da Tera**: o seu shell e o seu `claude` (com o login que você já
   usa, sem API paga); a Tera reage a essa sessão como a qualquer outra
 - "Reduzir movimento" no menu (e respeita o `prefers-reduced-motion` do sistema)

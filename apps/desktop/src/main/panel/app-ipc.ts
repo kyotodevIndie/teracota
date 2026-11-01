@@ -3,6 +3,8 @@
 import { z } from 'zod';
 import type { PanelResult } from '@tera/agent-bridge/contract';
 import { APP_PANEL_IPC, type AgentConnection, type TerminalSnapshot } from '../../shared/app-panel';
+import { THEMES, type LiveSnapshot, type PrefsPatch, type ProviderUsage, type UiPrefs } from '../../shared/live';
+import { GLASS_RANGE } from '../config';
 
 export interface AppPanelDeps {
   isPanelSender(sender: unknown): boolean;
@@ -12,6 +14,13 @@ export interface AppPanelDeps {
   setSpeech(id: string, on: boolean): Promise<boolean>;
   copyOpenSessions(id: string): boolean;
   minimize(): void;
+  live(): LiveSnapshot;
+  usage(): ProviderUsage[];
+  prefs(): Promise<UiPrefs>;
+  setPrefs(patch: PrefsPatch): Promise<UiPrefs>;
+  expand(): void;
+  /** Altura do conteúdo e recorte (validados de novo na janela) */
+  layout(height: number, rects: unknown): void;
   terminal: {
     /** Seletor do sistema (o consentimento); devolve o nome da pasta ou null */
     pickFolder(): Promise<string | null>;
@@ -32,6 +41,15 @@ const schemas = {
   terminalStart: z.object({ cols: z.number().int().min(2).max(1000), rows: z.number().int().min(2).max(1000), claude: z.boolean() }).strict(),
   terminalInput: z.string().min(1).max(64 * 1024),
   terminalResize: z.object({ cols: z.number().int().min(2).max(1000), rows: z.number().int().min(2).max(1000) }).strict(),
+  setPrefs: z.object({
+    theme: z.enum(THEMES).optional(),
+    glass: z.number().min(GLASS_RANGE.min).max(GLASS_RANGE.max).optional(),
+    moveMode: z.enum(['roam', 'stay']).optional(),
+    reducedMotion: z.boolean().optional(),
+    entityMode: z.enum(['single', 'multi']).optional(),
+    usage: z.object({ provider: z.string().min(1).max(64), on: z.boolean() }).strict().optional(),
+  }).strict(),
+  layout: z.object({ height: z.number().positive().max(10_000), rects: z.array(z.unknown()).max(64) }).strict(),
 };
 
 const INVALID = 'Requisição inválida.';
@@ -63,6 +81,14 @@ export function makeAppPanelHandlers(deps: AppPanelDeps): Record<string, AppPane
       deps.minimize();
       return { ok: true, data: null };
     }),
+    [APP_PANEL_IPC.live]: guarded(schemas.connections, async () => ({ ok: true, data: deps.live() })),
+    [APP_PANEL_IPC.usage]: guarded(schemas.connections, async () => ({ ok: true, data: deps.usage() })),
+    [APP_PANEL_IPC.prefs]: guarded(schemas.connections, async () => ({ ok: true, data: await deps.prefs() })),
+    [APP_PANEL_IPC.setPrefs]: guarded(schemas.setPrefs, async (patch) => ({ ok: true, data: await deps.setPrefs(patch) })),
+    [APP_PANEL_IPC.expand]: guarded(schemas.connections, async () => {
+      deps.expand();
+      return { ok: true, data: null };
+    }),
     [APP_PANEL_IPC.terminalPickFolder]: guarded(schemas.connections, async () => ({ ok: true, data: await deps.terminal.pickFolder() })),
     [APP_PANEL_IPC.terminalStart]: guarded(schemas.terminalStart, async ({ cols, rows, claude }) => ({ ok: true, data: deps.terminal.start(cols, rows, claude) })),
     [APP_PANEL_IPC.terminalSnapshot]: guarded(schemas.connections, async () => ({ ok: true, data: deps.terminal.snapshot() })),
@@ -76,8 +102,12 @@ export function makeAppPanelHandlers(deps: AppPanelDeps): Record<string, AppPane
 export type AppPanelListener = (sender: unknown, payload: unknown) => void;
 
 /** Entrada e tamanho do terminal: mensagens sem resposta (muitas por segundo), mesma validação */
-export function makeTerminalListeners(deps: Pick<AppPanelDeps, 'isPanelSender' | 'terminal'>): Record<string, AppPanelListener> {
+export function makeTerminalListeners(deps: Pick<AppPanelDeps, 'isPanelSender' | 'terminal'> & Partial<Pick<AppPanelDeps, 'layout'>>): Record<string, AppPanelListener> {
   return {
+    [APP_PANEL_IPC.layout]: (sender, payload) => {
+      const parsed = schemas.layout.safeParse(payload);
+      if (deps.isPanelSender(sender) && parsed.success) deps.layout?.(parsed.data.height, parsed.data.rects);
+    },
     [APP_PANEL_IPC.terminalInput]: (sender, payload) => {
       const parsed = schemas.terminalInput.safeParse(payload);
       if (deps.isPanelSender(sender) && parsed.success) deps.terminal.write(parsed.data);

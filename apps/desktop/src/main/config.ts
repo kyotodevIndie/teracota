@@ -3,6 +3,7 @@ import { app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { EntityMode, MoveMode } from '../shared/ipc';
+import { THEMES, type ThemeId } from '../shared/live';
 
 export interface Config {
   moveMode: MoveMode;
@@ -17,7 +18,14 @@ export interface Config {
   y?: number;
   /** Movimento reduzido pedido no menu */
   reducedMotion?: boolean;
+  /** Tema da interface; ausente = padrão */
+  uiTheme?: ThemeId;
+  /** Opacidade do vidro dos cartões; ausente = padrão */
+  uiGlass?: number;
 }
+
+/** Opacidade do vidro aceita (fora disso o texto some ou vira um bloco opaco) */
+export const GLASS_RANGE = { min: 0.4, max: 0.95 } as const;
 
 const file = () => path.join(app.getPath('userData'), 'config.json');
 /** Onde a config ficava com os nomes antigos do app (o mais recente primeiro) */
@@ -43,6 +51,8 @@ export function loadConfig(): Config {
       ...(raw.connectOffered === true && { connectOffered: true }),
       ...(typeof raw.x === 'number' && typeof raw.y === 'number' && { x: raw.x, y: raw.y }),
       ...(raw.reducedMotion === true && { reducedMotion: true }),
+      ...(THEMES.includes(raw.uiTheme as ThemeId) && { uiTheme: raw.uiTheme }),
+      ...(typeof raw.uiGlass === 'number' && raw.uiGlass >= GLASS_RANGE.min && raw.uiGlass <= GLASS_RANGE.max && { uiGlass: raw.uiGlass }),
       // `ui`, `companion` e `companionMuted` eram do Mini Companion (removido): são descartados,
       // e quem estava no modo mini volta pra Tera completa
     };

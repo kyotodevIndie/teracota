@@ -33,6 +33,7 @@ export interface WalkerHost {
 export class Walker {
   private allowed = false;
   private paused = false;
+  private held = false;
   private plan: WalkPlan | null = null;
   private deadline = 0;
   private dir: 1 | -1 = 1;
@@ -74,6 +75,12 @@ export class Walker {
     if (paused) this.halt();
   }
 
+  /** Segura parada (ex.: a interface está aberta presa nela) */
+  setHeld(held: boolean): void {
+    this.held = held;
+    if (held) this.halt();
+  }
+
   /** O usuário mexeu no personagem: para e espera um pouco antes de voltar a andar */
   interrupt(): void {
     this.halt();
@@ -112,7 +119,7 @@ export class Walker {
       if (now > this.deadline) this.halt();
       return;
     }
-    if (this.mode !== 'roam' || !this.allowed || this.paused || now < this.restUntil) return;
+    if (this.mode !== 'roam' || !this.allowed || this.paused || this.held || now < this.restUntil) return;
     this.pickTarget(now);
   }
 

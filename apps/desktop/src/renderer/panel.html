@@ -1,86 +1,174 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="vidro">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
   <title>Tera</title>
   <link rel="stylesheet" href="xterm.css" />
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
-  <div id="titlebar">
-    <span class="brand"><span class="brand-dot"></span>Tera</span>
-    <span class="spacer"></span>
-    <button id="win-min" class="win-btn" type="button" aria-label="Minimizar" data-testid="win-min">–</button>
-    <button id="win-close" class="win-btn close" type="button" aria-label="Fechar (a Tera continua no desktop)" data-testid="win-close">×</button>
+<!-- A janela é transparente e do tamanho disto: só os cartões aparecem, o desktop fica em volta -->
+<div id="root" data-side="above" data-mode="full">
+  <div id="stack">
+    <span class="tail tail-top hit" aria-hidden="true"></span>
+
+    <!-- ===== interface inteira ===== -->
+    <div id="full">
+      <header id="topbar" class="glass hit">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span id="title" class="title">Agora</span>
+        <span id="subtitle" class="sub"></span>
+        <span class="spacer"></span>
+        <span id="chips" class="chips"></span>
+        <button id="win-close" class="icon-btn" type="button" aria-label="Fechar (a Tera continua no desktop)" data-testid="win-close">×</button>
+        <div id="usage-pop" class="pop glass hit" role="dialog" aria-label="Limites de uso" hidden></div>
+      </header>
+
+      <div id="sim-banner" class="banner glass hit" data-testid="sim-banner" role="status" hidden>SIMULAÇÃO — nenhum agente real</div>
+      <div id="error" class="banner error hit" data-testid="error" role="alert" hidden></div>
+
+      <!-- Agora: o que está acontecendo, pedidos primeiro -->
+      <section id="view-now" class="view" aria-label="Agora">
+        <div id="now-list" class="cards" data-testid="now-list"></div>
+        <div id="now-empty" class="card glass hit empty" hidden>
+          <strong>Nenhuma sessão agora</strong>
+          <span>Abra o <code>claude</code> num terminal (ou na aba Terminal) e a Tera acompanha aqui.</span>
+        </div>
+      </section>
+
+      <!-- Terminal: o shell do usuário, ou a conversa pela API -->
+      <section id="view-terminal" class="view" aria-label="Terminal" hidden>
+        <div class="seg glass hit" role="tablist" aria-label="Como conversar">
+          <button id="tab-terminal" role="tab" type="button" aria-selected="true" aria-controls="terminal-tab" data-testid="tab-terminal">Terminal</button>
+          <button id="tab-chat" role="tab" type="button" aria-selected="false" aria-controls="chat-tab" data-testid="tab-chat">Conversa (API)</button>
+        </div>
+        <section id="terminal-tab" class="card glass hit term-card" role="tabpanel" aria-labelledby="tab-terminal">
+          <div class="row term-bar">
+            <button id="term-folder" type="button" data-testid="term-folder">Pasta…</button>
+            <span id="term-cwd" class="note mono" data-testid="term-cwd">pasta pessoal</span>
+            <span class="spacer"></span>
+            <button id="term-kill" class="ghost" type="button" data-testid="term-kill" hidden>Fechar</button>
+          </div>
+          <div id="term-empty" class="empty">
+            <span>O seu terminal, com o seu <code>claude</code> e o login que você já usa.</span>
+            <span class="row center">
+              <button id="term-claude" class="primary" type="button" data-testid="term-claude">Abrir o Claude</button>
+              <button id="term-shell" type="button" data-testid="term-shell">Só o terminal</button>
+            </span>
+          </div>
+          <div id="term" data-testid="terminal" hidden></div>
+        </section>
+
+        <section id="chat-tab" class="card glass hit chat-card" role="tabpanel" aria-labelledby="tab-chat" hidden>
+          <header id="setup">
+            <p class="note">Conversa pela API do Claude: precisa de chave (cobrada à parte). Para usar a sua assinatura, use a aba Terminal.</p>
+            <div class="row">
+              <select id="provider" data-testid="provider-select" aria-label="Agente"></select>
+              <button id="pick" data-testid="pick-folder" type="button">Pasta…</button>
+            </div>
+            <div id="provider-reason" class="note" hidden></div>
+            <div id="folder" class="note" hidden></div>
+            <div id="sessions" class="row" hidden>
+              <select id="session-select" data-testid="session-select" aria-label="Sessão para retomar"></select>
+              <button id="start" class="primary" data-testid="new-session" type="button">Iniciar</button>
+            </div>
+          </header>
+          <div id="statusbar" hidden>
+            <span id="dot"></span><span id="status-text" data-testid="state"></span>
+            <span class="spacer"></span>
+            <button id="end" class="ghost" data-testid="end-session" type="button">Encerrar</button>
+          </div>
+          <main id="history" data-testid="history" aria-live="polite"></main>
+          <section id="permission" data-testid="permission" hidden>
+            <strong>O agente pede permissão</strong>
+            <div id="perm-tool"></div>
+            <pre id="perm-detail"></pre>
+            <div id="perm-warn" hidden>Fora da pasta do projeto</div>
+            <div class="row">
+              <button id="allow" class="warn-btn" data-testid="allow" type="button">Permitir</button>
+              <button id="deny" data-testid="deny" type="button">Recusar</button>
+            </div>
+          </section>
+          <footer id="composer" hidden>
+            <textarea id="prompt" data-testid="prompt" rows="2" maxlength="20000" placeholder="Escreva um prompt (Ctrl+Enter envia)"></textarea>
+            <div class="row">
+              <button id="send" class="primary" data-testid="send" type="button">Enviar</button>
+              <button id="stop" data-testid="interrupt" type="button" hidden>Interromper</button>
+              <span class="spacer"></span>
+              <button id="collapse" class="ghost" data-testid="collapse" type="button">Recolher</button>
+            </div>
+          </footer>
+          <div id="collapse-only" class="row" hidden><span class="spacer"></span><button id="collapse2" class="ghost" data-testid="collapse-idle" type="button">Recolher</button></div>
+        </section>
+      </section>
+
+      <!-- Sessões: todas, filtráveis, e as encerradas há pouco -->
+      <section id="view-sessions" class="view" aria-label="Sessões" hidden>
+        <div id="sess-filter" class="seg glass hit" role="tablist" aria-label="Filtrar sessões">
+          <button type="button" role="tab" data-filter="all" aria-selected="true">Todas</button>
+          <button type="button" role="tab" data-filter="active" aria-selected="false">Ativas</button>
+          <button type="button" role="tab" data-filter="waiting" aria-selected="false">Precisam de você</button>
+        </div>
+        <div id="sess-list" class="cards" data-testid="sess-list"></div>
+        <h2 id="sess-ended-title" class="section" hidden>Encerradas</h2>
+        <div id="sess-ended" class="cards"></div>
+      </section>
+
+      <!-- Ajustes -->
+      <section id="view-settings" class="view" aria-label="Ajustes" hidden>
+        <h2 class="section">Aparência</h2>
+        <div class="card glass hit">
+          <fieldset id="themes" class="themes" aria-label="Tema"></fieldset>
+          <label class="slider">
+            <span>Vidro</span>
+            <input id="glass" type="range" min="0.4" max="0.95" step="0.01" data-testid="glass" />
+            <span id="glass-value" class="note"></span>
+          </label>
+        </div>
+
+        <h2 class="section">A Tera</h2>
+        <fieldset class="seg glass hit" aria-label="Movimento">
+          <button id="move-roam" type="button" aria-pressed="true">Passear</button>
+          <button id="move-stay" type="button" aria-pressed="false">Ficar parada</button>
+        </fieldset>
+        <label class="card glass hit toggle">
+          <span class="grow"><strong>Reduzir movimento</strong><span class="note">Sem passeio, cauda e respiração.</span></span>
+          <input id="reduced" type="checkbox" data-testid="reduced" />
+        </label>
+        <label class="card glass hit toggle">
+          <span class="grow"><strong>Uma Tera por sessão</strong><span class="note">Até 5, com a plaquinha do projeto.</span></span>
+          <input id="multi" type="checkbox" data-testid="multi" />
+        </label>
+
+        <h2 class="section">Agentes</h2>
+        <div class="card glass hit"><ul id="agent-list" class="agents"></ul></div>
+        <div id="usage-sources" class="cards"></div>
+      </section>
+
+      <nav id="nav" class="glass hit" aria-label="Seções">
+        <button type="button" data-view="now" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Agora
+        </button>
+        <button type="button" data-view="terminal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9l3 3-3 3"/><path d="M12 15h5"/></svg>Terminal
+        </button>
+        <button type="button" data-view="sessions">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Sessões
+          <span id="badge" class="badge" hidden></span>
+        </button>
+        <button type="button" data-view="settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Ajustes
+        </button>
+      </nav>
+    </div>
+
+    <!-- ===== só o pedido de uma IA (interface fechada) ===== -->
+    <div id="peek" data-testid="peek" hidden></div>
+
+    <span class="tail tail-bottom hit" aria-hidden="true"></span>
   </div>
-  <div id="sim-banner" data-testid="sim-banner" role="status" hidden>SIMULAÇÃO — nenhum agente real</div>
-  <section id="agents" data-testid="agents" aria-labelledby="agents-title">
-    <h2 id="agents-title">Agentes no terminal</h2>
-    <p class="note">Conectado, o agente faz a Tera reagir enquanto você trabalha nele.</p>
-    <ul id="agent-list"></ul>
-  </section>
-  <div id="tabs" role="tablist" aria-label="Como conversar">
-    <button id="tab-terminal" role="tab" type="button" aria-selected="true" aria-controls="terminal-tab" data-testid="tab-terminal">Terminal</button>
-    <button id="tab-chat" role="tab" type="button" aria-selected="false" aria-controls="chat-tab" data-testid="tab-chat">Conversa (API)</button>
-  </div>
-  <section id="terminal-tab" class="tab" role="tabpanel" aria-labelledby="tab-terminal">
-    <div class="row term-bar">
-      <button id="term-folder" type="button" data-testid="term-folder">Pasta…</button>
-      <span id="term-cwd" class="note" data-testid="term-cwd">pasta pessoal</span>
-      <span class="spacer"></span>
-      <button id="term-claude" type="button" data-testid="term-claude">Abrir o Claude</button>
-      <button id="term-shell" type="button" data-testid="term-shell">Só o terminal</button>
-      <button id="term-kill" type="button" data-testid="term-kill" hidden>Fechar terminal</button>
-    </div>
-    <div id="term-empty" class="empty">O seu terminal, com o seu <code>claude</code> e o login que você já usa.<br />A Tera reage a esta sessão como a qualquer outra.</div>
-    <div id="term" data-testid="terminal" hidden></div>
-  </section>
-  <section id="chat-tab" class="tab" role="tabpanel" aria-labelledby="tab-chat" hidden>
-  <header id="setup">
-    <div class="row">
-      <select id="provider" data-testid="provider-select" aria-label="Agente"></select>
-      <button id="pick" data-testid="pick-folder" type="button">Escolher pasta…</button>
-    </div>
-    <div id="provider-reason" class="note" hidden></div>
-    <div id="folder" class="note" hidden></div>
-    <div id="sessions" hidden>
-      <select id="session-select" data-testid="session-select" aria-label="Sessão para retomar"></select>
-      <button id="start" data-testid="new-session" type="button">Iniciar</button>
-    </div>
-  </header>
-
-  <div id="statusbar" hidden>
-    <span id="dot"></span><span id="status-text" data-testid="state"></span>
-    <span class="spacer"></span>
-    <button id="end" data-testid="end-session" type="button">Encerrar sessão</button>
-  </div>
-
-  <div id="error" data-testid="error" role="alert" hidden></div>
-  <main id="history" data-testid="history" aria-live="polite"></main>
-
-  <section id="permission" data-testid="permission" hidden>
-    <strong>O agente pede permissão</strong>
-    <div id="perm-tool"></div>
-    <pre id="perm-detail"></pre>
-    <div id="perm-warn" hidden>Fora da pasta do projeto</div>
-    <div class="row">
-      <button id="allow" data-testid="allow" type="button">Permitir</button>
-      <button id="deny" data-testid="deny" type="button">Recusar</button>
-    </div>
-  </section>
-
-  <footer id="composer" hidden>
-    <textarea id="prompt" data-testid="prompt" rows="3" maxlength="20000" placeholder="Escreva um prompt (Ctrl+Enter envia)"></textarea>
-    <div class="row">
-      <button id="send" data-testid="send" type="button">Enviar</button>
-      <button id="stop" data-testid="interrupt" type="button" hidden>Interromper</button>
-      <span class="spacer"></span>
-      <button id="collapse" data-testid="collapse" type="button">Recolher</button>
-    </div>
-  </footer>
-  <div id="collapse-only" class="row"><span class="spacer"></span><button id="collapse2" data-testid="collapse-idle" type="button">Recolher</button></div>
-  </section>
-  <script src="panel.js"></script>
+</div>
+<script src="panel.js"></script>
 </body>
 </html>

@@ -1,13 +1,18 @@
-// Renderer da interface da Tera: agentes (conexão), terminal (aba padrão, panel-terminal.ts)
-// e conversa pela API (Agent Bridge). Todo texto
-// entra via textContent — nada de innerHTML nem markdown. Quem decide o estado é o main;
-// aqui só se desenha.
+// Renderer da interface da Tera: cartões empilhados presos na Tera. Abas: Agora (sessões
+// ao vivo, panel-live.ts), Terminal (shell do usuário, panel-terminal.ts, ou a conversa
+// pela API, aqui embaixo), Sessões e Ajustes (temas, panel-settings.ts). Todo texto entra
+// via textContent — nada de innerHTML nem markdown. Quem decide o estado é o main; aqui
+// só se desenha.
 import type {
   BridgeEvent, BridgeState, FolderPick, HistoryEntry, PanelResult, PendingPermission, ProviderDescriptor,
   SessionSnapshot,
 } from '@tera/agent-bridge/contract';
-import type { AgentConnection } from '../shared/app-panel';
+import type { ThemeId } from '../shared/live';
+import { mountLayout } from './panel-layout';
+import { mountLive } from './panel-live';
+import { mountSettings } from './panel-settings';
 import { mountTerminalTab } from './panel-terminal';
+import { mountUsage } from './panel-usage';
 
 const api = window.teracotaPanel!;
 const appApi = window.teracotaApp!;
@@ -241,7 +246,6 @@ $('end').addEventListener('click', async () => {
   if (session) unwrap(await api.closeSession(session.handle));
 });
 for (const id of ['collapse', 'collapse2', 'win-close']) $(id).addEventListener('click', () => void api.hide());
-$('win-min').addEventListener('click', () => void appApi.minimize());
 
 async function answer(allow: boolean): Promise<void> {
   const p = permissions[0];
@@ -302,109 +306,72 @@ function onEvent(e: BridgeEvent): void {
   render();
 }
 
-// ---------- agentes (conexão) ----------
+// ---------- montagem ----------
 
-const agentList = $('agent-list');
-const STATUS_TEXT: Record<AgentConnection['status'], string> = {
-  connected: 'Conectado',
-  available: 'Instalado, não conectado',
-  unavailable: 'Não encontrado',
-};
-let agentBusy = false;
-
-function button(text: string, testid: string, onClick: () => Promise<void> | void): HTMLButtonElement {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.textContent = text;
-  b.dataset.testid = testid;
-  b.disabled = agentBusy;
-  b.onclick = () => void onClick();
-  return b;
-}
-
-/** Roda uma ação de conexão com os botões travados (conectar pode levar alguns segundos) */
-async function agentAction(fn: () => Promise<PanelResult<AgentConnection[] | null>>): Promise<void> {
-  agentBusy = true;
-  renderAgents(lastAgents);
-  const data = unwrap(await fn());
-  agentBusy = false;
-  if (Array.isArray(data)) lastAgents = data;
-  renderAgents(lastAgents);
-}
-
-let lastAgents: AgentConnection[] = [];
-
-function renderAgents(list: AgentConnection[]): void {
-  agentList.replaceChildren(...list.map((a) => {
-    const li = document.createElement('li');
-    li.className = 'agent';
-    li.dataset.testid = `agent-${a.id}`;
-    const name = document.createElement('span');
-    name.className = 'agent-name';
-    name.textContent = a.displayName;
-    const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.dataset.status = a.status;
-    chip.textContent = STATUS_TEXT[a.status];
-    const actions = document.createElement('div');
-    actions.className = 'agent-actions';
-    if (a.status !== 'connected') {
-      // não encontrado: o fluxo copia o comando manual e a Tera explica
-      actions.append(button(a.status === 'available' ? a.label : 'Tentar conectar', 'connect', () => agentAction(() => appApi.connect(a.id))));
-    }
-    if (a.status === 'connected' && a.openSessionsCommand) {
-      const cmd = a.openSessionsCommand;
-      actions.append(button(`Sessões já abertas: copiar ${cmd}`, 'copy-open-sessions', async () => { unwrap(await appApi.copyOpenSessions(a.id)); }));
-    }
-    if (a.speech !== null) {
-      const label = document.createElement('label');
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.checked = a.speech;
-      box.disabled = agentBusy;
-      box.dataset.testid = 'speech';
-      box.onchange = () => void agentAction(() => appApi.setSpeech(a.id, box.checked));
-      label.append(box, `Deixar o ${a.displayName} falar pela Tera`);
-      actions.append(label);
-    }
-    li.append(name, chip, actions);
-    return li;
-  }));
-}
-
-async function refreshAgents(): Promise<void> {
-  if (agentBusy) return;
-  const data = unwrap(await appApi.connections());
-  if (data) {
-    lastAgents = data;
-    renderAgents(data);
-  }
-}
-
-// ---------- abas ----------
-
+const layout = mountLayout(appApi, () => {});
+const changed = layout.changed;
 const terminalTab = mountTerminalTab({ api: appApi.terminal, unwrap });
-const TABS = [
+const live = mountLive({ api: appApi, changed });
+const usage = mountUsage({ changed });
+const settings = mountSettings({ api: appApi, unwrap, changed, onTheme: (t: ThemeId) => terminalTab.applyTheme(t) });
+
+// Terminal | Conversa (API)
+const SUBTABS = [
   { tab: $('tab-terminal'), panel: $('terminal-tab'), onShow: () => terminalTab.show() },
   { tab: $('tab-chat'), panel: $('chat-tab'), onShow: () => {} },
 ];
-for (const t of TABS) {
+for (const t of SUBTABS) {
   t.tab.onclick = () => {
-    for (const o of TABS) {
+    for (const o of SUBTABS) {
       o.tab.setAttribute('aria-selected', String(o === t));
       o.panel.hidden = o !== t;
     }
     t.onShow();
+    changed();
   };
 }
 
-api.onEvent(onEvent);
+// barra de baixo
+const VIEWS = { now: 'Agora', terminal: 'Terminal', sessions: 'Sessões', settings: 'Ajustes' } as const;
+type View = keyof typeof VIEWS;
+function showView(view: View): void {
+  for (const b of document.querySelectorAll<HTMLButtonElement>('#nav button')) {
+    if (b.dataset.view === view) b.setAttribute('aria-current', 'page');
+    else b.removeAttribute('aria-current');
+  }
+  for (const v of Object.keys(VIEWS) as View[]) $(`view-${v}`).hidden = v !== view;
+  $('title').textContent = VIEWS[view];
+  $('subtitle').hidden = view !== 'now';
+  if (view === 'terminal' && !$('terminal-tab').hidden) terminalTab.show();
+  if (view === 'settings') void settings.refreshAgents();
+  changed();
+}
+for (const b of document.querySelectorAll<HTMLButtonElement>('#nav button')) {
+  b.onclick = () => showView(b.dataset.view as View);
+}
+
+// Esc fecha (a Tera continua no desktop)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !e.defaultPrevented && !(document.activeElement?.closest('#term'))) void api.hide();
+});
+
+api.onEvent((e) => {
+  onEvent(e);
+  changed();
+});
+appApi.onLive((s) => live.render(s));
+appApi.onUsage((u) => usage.render(u));
 window.addEventListener('focus', () => {
-  void refreshAgents();
+  void settings.refreshAgents();
   if (!session) void refreshProviders();
 });
 void (async () => {
-  await refreshAgents();
+  const snap = unwrap(await appApi.live());
+  if (snap) live.render(snap);
+  const u = unwrap(await appApi.usage());
+  if (u) usage.render(u);
+  await settings.refreshAgents();
   await refreshProviders();
   await hydrate();
+  showView('now');
 })();

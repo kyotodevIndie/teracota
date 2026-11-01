@@ -3,12 +3,14 @@
 //   POST /api/v1/event          API local universal (CompanionEvent + source opcional)
 //   POST /event                 alias compatível da API acima
 //   POST /mcp                   servidor MCP (Streamable HTTP)
+//   POST <rotas de uso>         limites de uso dos agentes (rota de cada adapter)
 //   GET  /health
 // Documentação da API: docs/API.md
 import http from 'node:http';
 import { parseIncoming, type CompanionEvent, type IncomingEvent } from '../shared/protocol';
-import { ADAPTERS, adapterForRoute } from './integrations';
+import { ADAPTERS, adapterForRoute, adapterForUsageRoute } from './integrations';
 import type { AgentSignal } from './integrations/types';
+import type { UsageWindow } from '../shared/live';
 import { handleMcpRequest } from './mcp';
 
 /** Eventos de agentes podem trazer payloads grandes (ex.: conteúdo de ferramentas) */
@@ -20,6 +22,8 @@ export interface ServerHandlers {
   onSignal(signal: AgentSignal): void;
   onEvent(incoming: IncomingEvent): void;
   onMcp(event: CompanionEvent): void;
+  /** Limites de uso de um agente, já lidos pelo adapter */
+  onUsage?(provider: string, windows: UsageWindow[]): void;
 }
 
 function readJson(req: http.IncomingMessage): Promise<unknown> {
@@ -56,7 +60,7 @@ function isLocalClient(req: http.IncomingMessage, port: number): boolean {
   return host === `127.0.0.1:${port}` || host === `localhost:${port}`;
 }
 
-const knownRoute = (url: string) => url === '/mcp' || EVENT_ROUTES.includes(url) || !!adapterForRoute(url);
+const knownRoute = (url: string) => url === '/mcp' || !!adapterForUsageRoute(url) || EVENT_ROUTES.includes(url) || !!adapterForRoute(url);
 
 export function startEventServer(port: number, handlers: ServerHandlers): http.Server {
   const server = http.createServer(async (req, res) => {
@@ -87,7 +91,7 @@ export function startEventServer(port: number, handlers: ServerHandlers): http.S
       body = await readJson(req);
     } catch {
       // eventos nativos de agentes nunca recebem erro: não podem atrapalhar o agente
-      if (!res.headersSent) res.writeHead(adapterForRoute(url) ? 204 : 400).end();
+      if (!res.headersSent) res.writeHead(adapterForRoute(url) || adapterForUsageRoute(url) ? 204 : 400).end();
       return;
     }
 
@@ -98,6 +102,17 @@ export function startEventServer(port: number, handlers: ServerHandlers): http.S
         console.error('[teracota] erro no MCP:', err);
         if (!res.headersSent) res.writeHead(500).end();
       }
+      return;
+    }
+
+    const usageAdapter = adapterForUsageRoute(url);
+    if (usageAdapter?.usage) {
+      try {
+        handlers.onUsage?.(usageAdapter.id, usageAdapter.usage.parse(body));
+      } catch (err) {
+        console.error('[teracota] limites de uso falharam:', err);
+      }
+      res.writeHead(204).end();
       return;
     }
 

@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { MCP_TOOL_PREFIX, PROVIDER, claudeCode, hookToSignal, parseHookInput } from './adapter';
+import {
+  MCP_TOOL_PREFIX, PROVIDER, claudeCode, hookToSignal, notificationRequest, parseHookInput, questionRequest, toolDetail, translateMessage,
+} from './adapter';
 
 describe('parseHookInput', () => {
   it('pega só os campos que o adapter usa', () => {
     expect(parseHookInput({
       hook_event_name: 'PreToolUse', session_id: 's1', cwd: 'C:\\dev\\api', tool_name: 'Edit',
       tool_input: { file_path: 'x' }, transcript_path: 'y',
-    })).toEqual({ hook_event_name: 'PreToolUse', session_id: 's1', cwd: 'C:\\dev\\api', tool_name: 'Edit', source: undefined });
+    })).toEqual({
+      hook_event_name: 'PreToolUse', session_id: 's1', cwd: 'C:\\dev\\api', tool_name: 'Edit', source: undefined,
+      message: undefined, notification_type: undefined, tool_input: { file_path: 'x' },
+    });
   });
 
   it('rejeita payload sem nome de evento', () => {
@@ -73,5 +78,46 @@ describe('adapter claudeCode', () => {
     expect(claudeCode.routes).toContain('/hook');
     expect(claudeCode.toSignal({ hook_event_name: 'Stop', session_id: 'x' })?.working).toBe(false);
     expect(claudeCode.toSignal('lixo')).toBeNull();
+  });
+});
+
+describe('o que a interface mostra de cada sessão', () => {
+  it('detalhe da ferramenta: arquivo, comando, busca, site', () => {
+    expect(toolDetail('Edit', { file_path: 'C:\\dev\\api\\src\\app.ts' })).toBe('app.ts');
+    expect(toolDetail('Read', { file_path: '/home/x/README.md' })).toBe('README.md');
+    expect(toolDetail('Bash', { command: 'npm test\nnpm run build' })).toBe('npm test');
+    expect(toolDetail('Grep', { pattern: 'useAuth' })).toBe('useAuth');
+    expect(toolDetail('WebFetch', { url: 'https://docs.example.com/a?b' })).toBe('docs.example.com');
+    expect(toolDetail('Bash', { command: 'x'.repeat(200) })!.length).toBeLessThanOrEqual(90);
+    expect(toolDetail('Bash', undefined)).toBeUndefined();
+  });
+
+  it('pergunta do AskUserQuestion com as alternativas', () => {
+    expect(questionRequest({ questions: [{ question: 'Qual lib?', options: [{ label: 'Zustand' }, { label: 'Redux' }] }] }, 7))
+      .toEqual({ kind: 'question', message: 'Qual lib?', options: ['Zustand', 'Redux'], at: 7 });
+    expect(questionRequest({ questions: [] })).toBeNull();
+    expect(questionRequest(undefined)).toBeNull();
+  });
+
+  it('notificação de permissão vira pedido, em português; a de ocioso não', () => {
+    expect(notificationRequest({ message: 'Claude needs your permission to use Bash', notification_type: 'permission_prompt' }, 1))
+      .toEqual({ kind: 'permission', message: 'Quer rodar um comando', at: 1 });
+    expect(notificationRequest({ message: 'Claude is waiting for your input', notification_type: 'idle_prompt' })).toBeNull();
+    expect(translateMessage('Claude needs your permission to use mcp__github__create_issue')).toBe('Quer usar create_issue (github)');
+    expect(translateMessage('Algo novo')).toBe('Algo novo');
+  });
+
+  it('o pedido some quando a sessão segue (nova ferramenta, novo prompt, fim)', () => {
+    const base = { session_id: 's', cwd: '/p' };
+    expect(hookToSignal({ ...base, hook_event_name: 'PreToolUse', tool_name: 'Read', tool_input: { file_path: '/p/a.ts' } }))
+      .toMatchObject({ request: null, activity: { kind: 'reading', detail: 'a.ts' } });
+    expect(hookToSignal({ ...base, hook_event_name: 'UserPromptSubmit' })).toMatchObject({ request: null });
+    expect(hookToSignal({ ...base, hook_event_name: 'Stop' })).toMatchObject({ request: null, activity: { kind: 'idle' } });
+  });
+
+  it('AskUserQuestion vira pedido de pergunta (e não atividade)', () => {
+    const s = hookToSignal({ session_id: 's', cwd: '/p', hook_event_name: 'PreToolUse', tool_name: 'AskUserQuestion', tool_input: { questions: [{ question: 'Q?' }] } });
+    expect(s?.request).toMatchObject({ kind: 'question', message: 'Q?' });
+    expect(s).not.toHaveProperty('activity');
   });
 });

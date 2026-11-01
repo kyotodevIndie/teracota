@@ -6,6 +6,7 @@ import { app, screen } from 'electron';
 import { CHARACTER_NAME, ENTITY_COLORS } from '../shared/brand';
 import type { EntityMode, Identity, MoveMode, Point } from '../shared/ipc';
 import type { CompanionEvent, IncomingEvent } from '../shared/protocol';
+import type { LiveSession, LiveSnapshot } from '../shared/live';
 import { saveConfig, type Config } from './config';
 import { Entity, SIZE, cornerPosition, isOnScreen } from './entity';
 import { providerInfo } from './integrations';
@@ -25,6 +26,10 @@ export class EntityManager {
   private home: Entity | null = null;
   private readonly sessions = new SessionTracker();
   private pendingMcp: { key: string; at: number } | null = null;
+  private readonly liveListeners = new Set<() => void>();
+  private readonly homeMoveListeners = new Set<() => void>();
+  /** A interface está aberta presa na Tera: ela não sai passeando */
+  private held = false;
 
   constructor(private config: Config) {
     setInterval(() => this.prune(), PRUNE_EVERY_MS);
@@ -98,6 +103,12 @@ export class EntityManager {
     if (this.sessions.providerCount() !== providersBefore) this.refreshLabels();
 
     if (signal.working !== undefined) session.working = signal.working;
+    if (signal.activity !== undefined) session.activity = signal.activity;
+    if (signal.request !== undefined) {
+      // pedido de permissão sem detalhe: o detalhe é a ferramenta que ele ia usar
+      const detail = signal.request?.kind === 'permission' && !signal.request.detail ? session.activity?.detail : undefined;
+      session.request = signal.request && (detail ? { ...signal.request, detail } : signal.request);
+    }
     if (signal.mcpCall) this.pendingMcp = { key, at: Date.now() };
     const label = this.labelFor(session);
     if (signal.lifecycle === 'end') {
@@ -107,6 +118,65 @@ export class EntityManager {
 
     if (this.mode === 'single') this.routeSingle(signal, label);
     else this.routeMulti(signal, key, label);
+    this.emitLive();
+  }
+
+  // ---------- interface ("agora") ----------
+
+  /** Sessões ao vivo e encerradas recentes, prontas pra interface */
+  liveSnapshot(): LiveSnapshot {
+    const view = (s: Session): LiveSession => ({
+      key: s.key,
+      provider: s.provider,
+      providerName: providerInfo(s.provider).displayName,
+      badge: providerInfo(s.provider).badge,
+      project: s.project,
+      working: s.working,
+      activity: s.activity,
+      request: s.request,
+      startedAt: s.startedAt,
+      lastSeen: s.lastSeen,
+      ...(s.endedAt !== undefined && { endedAt: s.endedAt }),
+    });
+    return { active: this.sessions.list().map(view), ended: this.sessions.listEnded().map(view) };
+  }
+
+  onLiveChange(cb: () => void): () => void {
+    this.liveListeners.add(cb);
+    return () => this.liveListeners.delete(cb);
+  }
+
+  private emitLive(): void {
+    for (const cb of this.liveListeners) cb();
+  }
+
+  /** A Tera principal (a interface fica presa nela) */
+  get homeEntity(): Entity | undefined {
+    return this.entities.find((e) => e === this.home && e.alive) ?? this.entities.find((e) => e.alive);
+  }
+
+  /** A Tera principal mudou de lugar (passeio, arrasto) ou foi recriada */
+  onHomeMove(cb: () => void): () => void {
+    this.homeMoveListeners.add(cb);
+    return () => this.homeMoveListeners.delete(cb);
+  }
+
+  /** Interface aberta: a Tera principal fica parada (o arrasto continua valendo) */
+  setHeld(held: boolean): void {
+    this.held = held;
+    this.homeEntity?.setHeld(held);
+  }
+
+  get prefs(): { moveMode: MoveMode; reducedMotion: boolean; entityMode: EntityMode } {
+    return { moveMode: this.moveMode, reducedMotion: this.reducedMotion, entityMode: this.mode };
+  }
+
+  get uiPrefs(): Pick<Config, 'uiTheme' | 'uiGlass'> {
+    return { uiTheme: this.config.uiTheme, uiGlass: this.config.uiGlass };
+  }
+
+  setUiPrefs(patch: Pick<Config, 'uiTheme' | 'uiGlass'>): void {
+    this.updateConfig(patch);
   }
 
   /** Evento da API local: com source entra no fluxo de sessões; sem, vai pra todas */
@@ -259,6 +329,7 @@ export class EntityManager {
 
   private prune(): void {
     const { removed, workingChanged } = this.sessions.prune();
+    if (removed.length || workingChanged) this.emitLive();
     if (this.mode === 'multi') {
       for (const id of removed) {
         const e = this.entityFor(id);
@@ -276,6 +347,8 @@ export class EntityManager {
     const { x, y } = this.config;
     const saved = x !== undefined && y !== undefined ? { x, y } : null;
     this.home = this.spawn(saved && isOnScreen(saved) ? saved : cornerPosition(), HOME_IDENTITY, true);
+    if (this.held) this.home.setHeld(true);
+    for (const cb of this.homeMoveListeners) cb();
   }
 
   private spawn(position: Point, identity: Identity, persist = false): Entity {
@@ -288,6 +361,7 @@ export class EntityManager {
       onSettle: persist ? ({ x, y }) => this.updateConfig({ x, y }) : undefined,
     });
     entity.win.on('closed', () => { this.entities = this.entities.filter((e) => e !== entity); });
+    entity.win.on('move', () => { if (entity === this.homeEntity) for (const cb of this.homeMoveListeners) cb(); });
     if (this.reducedMotion) entity.setMotion({ reduced: true });
     this.entities.push(entity);
     return entity;

@@ -112,6 +112,7 @@ só mudam o que a Tera mostra: não executam nada. Detalhes em [SECURITY.md](htt
 | `GET /health` | Responde `ok` se o app estiver aberto |
 | `POST /mcp` | Servidor MCP (Streamable HTTP, sem estado) com as ferramentas `say` e `emote` (as falas opcionais do Claude Code) |
 | `POST /hook` | Eventos nativos do Claude Code (usada pelo plugin) |
+| `POST /usage/claude-code` | JSON da statusline do Claude Code (só `rate_limits` é lido): limites do plano no chip da interface. Usada pelo script que a Tera instala quando o usuário liga os limites nos Ajustes |
 
 ## Versões
 

@@ -4,6 +4,15 @@
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
 import type { AppPanelApi, PanelResultLike, TerminalSnapshot } from '../shared/app-panel';
+import type { ThemeId } from '../shared/live';
+
+/** Cores do terminal por tema da interface (o fundo vem do vidro, pelo CSS) */
+const TERM_THEMES: Record<ThemeId, { foreground: string; cursor: string; selectionBackground: string; cursorAccent: string }> = {
+  vidro: { foreground: '#ecebf5', cursor: '#f0a07c', cursorAccent: '#1a1424', selectionBackground: 'rgba(217, 119, 87, 0.35)' },
+  aurora: { foreground: '#f3ecf5', cursor: '#f0a07c', cursorAccent: '#1a1424', selectionBackground: 'rgba(185, 140, 255, 0.35)' },
+  claro: { foreground: '#1d1828', cursor: '#c8623a', cursorAccent: '#ffffff', selectionBackground: 'rgba(200, 98, 58, 0.25)' },
+  contraste: { foreground: '#ffffff', cursor: '#ffd000', cursorAccent: '#000000', selectionBackground: 'rgba(255, 208, 0, 0.4)' },
+};
 
 export interface TerminalTabOptions {
   api: AppPanelApi['terminal'];
@@ -11,7 +20,7 @@ export interface TerminalTabOptions {
   unwrap<T>(r: PanelResultLike<T>): T | undefined;
 }
 
-export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show(): void } {
+export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show(): void; applyTheme(theme: ThemeId): void } {
   const $ = (id: string) => document.getElementById(id)!;
   const box = $('term');
   const empty = $('term-empty');
@@ -27,10 +36,7 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
     cursorBlink: true,
     scrollback: 5000,
     allowTransparency: true, // o vidro da interface aparece por trás do terminal
-    theme: {
-      background: 'rgba(10, 9, 16, 0.55)', foreground: '#ecebf5', cursor: '#f0a07c', cursorAccent: '#1a1424',
-      selectionBackground: 'rgba(217, 119, 87, 0.35)',
-    },
+    theme: { background: 'rgba(0, 0, 0, 0)', ...TERM_THEMES.vidro },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
@@ -53,19 +59,22 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
 
   function render(snapshot?: TerminalSnapshot): void {
     if (snapshot) cwdEl.textContent = snapshot.cwdLabel ?? 'pasta pessoal';
-    empty.hidden = running || opened;
-    box.hidden = !(running || opened);
+    // sem terminal rodando, volta a escolha (Claude ou só o terminal)
+    empty.hidden = running;
+    box.hidden = !running;
     killBtn.hidden = !running;
-    claudeBtn.textContent = running ? 'Reabrir com o Claude' : 'Abrir o Claude';
-    shellBtn.textContent = running ? 'Reabrir só o terminal' : 'Só o terminal';
   }
 
   async function start(claude: boolean): Promise<void> {
     ensureOpen();
-    render();
+    empty.hidden = true;
+    box.hidden = false;
     fit.fit();
     const snap = unwrap(await api.start(term.cols, term.rows, claude));
-    if (!snap) return;
+    if (!snap) {
+      render();
+      return;
+    }
     term.reset();
     running = true;
     render(snap);
@@ -121,6 +130,9 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
   });
 
   return {
+    applyTheme(theme) {
+      term.options.theme = { background: 'rgba(0, 0, 0, 0)', ...TERM_THEMES[theme] };
+    },
     show() {
       requestAnimationFrame(() => {
         refit();

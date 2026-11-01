@@ -3,6 +3,7 @@
 // Regra: nada específico de um agente sai da pasta do adapter. Cada adapter recebe
 // os eventos nativos do seu agente e entrega AgentSignals normalizados; o core
 // (manager/sessions) e o renderer nunca sabem qual agente originou o evento.
+import type { Activity, AgentRequest, AiBadge, UsageWindow } from '../../shared/live';
 import type { CompanionEvent } from '../../shared/protocol';
 
 /** O que um agente consegue informar. O core oferece a melhor experiência com o que houver. */
@@ -43,6 +44,10 @@ export interface AgentSignal {
   mcpCall?: boolean;
   /** O que mostrar (null = só atualiza a sessão) */
   event: CompanionEvent | null;
+  /** O que a sessão está fazendo (pra interface); ausente = não muda */
+  activity?: Activity | null;
+  /** Pedido pro usuário; null = resolvido; ausente = não muda */
+  request?: AgentRequest | null;
 }
 
 export interface AgentAdapter {
@@ -57,6 +62,27 @@ export interface AgentAdapter {
   toSignal(body: unknown): AgentSignal | null;
   /** Opcional: conecta o agente ao Teracota (ex.: instala o plugin). Vira um item no menu. */
   connect?: AgentConnector;
+  /** Sigla e cor do ícone da IA na interface */
+  badge?: AiBadge;
+  /** Opcional: limites de uso do plano (o chip da IA na interface) */
+  usage?: AgentUsage;
+}
+
+/**
+ * Limites de uso de um agente. O agente (ou um script que a Tera instala nele) manda um
+ * JSON pra `route`; `parse` tira as janelas de uso. Ligar/desligar fica nos Ajustes,
+ * porque costuma mexer na configuração do agente.
+ */
+export interface AgentUsage {
+  /** Rota HTTP local que recebe o JSON */
+  route: string;
+  parse(body: unknown): UsageWindow[];
+  /** Texto do item nos Ajustes */
+  label: string;
+  description: string;
+  enabled(): boolean;
+  enable(port: number): boolean;
+  disable(): boolean;
 }
 
 export interface AgentConnector {

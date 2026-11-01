@@ -186,7 +186,13 @@ Se as respostas forem insuficientes, **não implementar ainda**. Nesse meio-temp
    fechado. Evite exigir Node ou Python na máquina do usuário.
 7. Se o agente tiver como instalar a integração por CLI, implemente `connect`: o menu
    ganha "Conectar ao &lt;agente&gt;" sozinho.
-8. Escreva testes de `toSignal` (veja `apps/desktop/src/main/integrations/claude-code/adapter.test.ts`) e rode `pnpm check`.
+8. Pra interface: em `toSignal`, preencha `activity` (o que a sessão está fazendo, com um
+   detalhe curto como o nome do arquivo) e `request` (o agente precisa do usuário:
+   permissão ou pergunta, com as alternativas; `null` quando a sessão segue). Dê um
+   `badge` (sigla e cor do ícone).
+9. Se o agente informa limites de uso do plano, implemente `usage` (rota própria, `parse` e
+   ligar/desligar): a interface ganha o chip da IA e o item nos Ajustes sozinha.
+10. Escreva testes de `toSignal` (veja `apps/desktop/src/main/integrations/claude-code/adapter.test.ts`) e rode `pnpm check`.
 
 ## API local universal
 

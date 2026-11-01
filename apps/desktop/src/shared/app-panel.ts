@@ -1,6 +1,7 @@
 // Contrato da parte "app" da interface da Tera (conexão com agentes), separado do
 // contrato do Agent Bridge (@tera/agent-bridge/contract), que é só sobre sessões.
 import type { PanelResult } from '@tera/agent-bridge/contract';
+import type { LiveSnapshot, PanelPlacement, PrefsPatch, ProviderUsage, UiPrefs } from './live';
 
 export type PanelResultLike<T> = PanelResult<T>;
 
@@ -16,10 +17,30 @@ export const APP_PANEL_IPC = {
   terminalKill: 'tera:terminal-kill',
   terminalSnapshot: 'tera:terminal-snapshot',
   minimize: 'tera:minimize',
+  live: 'tera:live',
+  usage: 'tera:usage',
+  prefs: 'tera:prefs',
+  setPrefs: 'tera:set-prefs',
+  /** Do pedido (peek) pra interface inteira */
+  expand: 'tera:expand',
+  /** renderer -> main, sem resposta: altura do conteúdo e recorte dos cartões */
+  layout: 'tera:layout',
   /** main -> renderer */
   terminalData: 'tera:terminal-data',
   terminalExit: 'tera:terminal-exit',
+  liveChanged: 'tera:live-changed',
+  usageChanged: 'tera:usage-changed',
+  prefsChanged: 'tera:prefs-changed',
+  placement: 'tera:placement',
 } as const;
+
+/** Retângulo do recorte da janela (px da janela) */
+export interface LayoutRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** Estado do terminal embutido (um por vez; sobrevive a esconder a janela) */
 export interface TerminalSnapshot {
@@ -54,6 +75,20 @@ export interface AppPanelApi {
   copyOpenSessions(id: string): Promise<PanelResult<null>>;
   /** Minimiza a janela da interface (a barra de título é do HTML) */
   minimize(): Promise<PanelResult<null>>;
+  /** Sessões dos agentes agora (e as encerradas há pouco) */
+  live(): Promise<PanelResult<LiveSnapshot>>;
+  /** Limites de uso por IA */
+  usage(): Promise<PanelResult<ProviderUsage[]>>;
+  prefs(): Promise<PanelResult<UiPrefs>>;
+  setPrefs(patch: PrefsPatch): Promise<PanelResult<UiPrefs>>;
+  /** Abre a interface inteira (a partir do pedido mostrado sozinho) */
+  expand(): Promise<PanelResult<null>>;
+  /** Altura do conteúdo e onde estão os cartões (o resto da janela deixa o clique passar) */
+  layout(height: number, rects: LayoutRect[]): void;
+  onLive(cb: (snapshot: LiveSnapshot) => void): void;
+  onUsage(cb: (usage: ProviderUsage[]) => void): void;
+  onPrefs(cb: (prefs: UiPrefs) => void): void;
+  onPlacement(cb: (placement: PanelPlacement) => void): void;
   /** Terminal embutido: roda o shell do usuário (e o `claude` dele) com o login que ele já tem */
   terminal: {
     /** Seletor de pasta do sistema; null = cancelou */

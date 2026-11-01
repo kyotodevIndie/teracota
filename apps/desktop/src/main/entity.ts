@@ -174,6 +174,11 @@ export class Entity {
     this.walker.setAllowed(allowed);
   }
 
+  /** Interface aberta presa nela: não sai passeando */
+  setHeld(held: boolean): void {
+    this.walker.setHeld(held);
+  }
+
   setMotion(motion: MotionInfo): void {
     this.motion = motion;
     this.post(IPC.motion, motion);

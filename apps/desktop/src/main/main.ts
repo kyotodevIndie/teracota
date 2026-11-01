@@ -13,6 +13,7 @@ import { assetsDir } from './paths';
 import { startEventServer } from './server';
 import { loadFallbackSkin, loadSkin } from './skins';
 import { getAgentPanel, initAgentPanel } from './panel';
+import { usageStore } from './usage';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -36,7 +37,7 @@ onEntity(IPC.walkArrived, (entity) => entity.walkArrived());
 onEntity<[boolean]>(IPC.walkAllowed, (entity, allowed) => entity.setWalkAllowed(allowed));
 onEntity(IPC.contextMenu, (entity) => buildMenu(manager, entity).popup({ window: entity.win }));
 // clique na Tera (não arrasto, não carinho): abre a interface ou traz pra frente
-onEntity(IPC.clicked, () => getAgentPanel()?.show());
+onEntity(IPC.clicked, () => getAgentPanel()?.toggle());
 ipcMain.handle(IPC.getSkin, () => loadSkin(manager?.skinId));
 ipcMain.handle(IPC.getFallbackSkin, () => loadFallbackSkin());
 
@@ -103,6 +104,7 @@ if (relaunchingForX11) {
       onSignal: (signal) => manager.handleSignal(signal),
       onEvent: (incoming) => manager.handleEvent(incoming),
       onMcp: (event) => manager.handleMcp(event),
+      onUsage: (provider, windows) => usageStore.set(provider, windows),
     });
   });
 
