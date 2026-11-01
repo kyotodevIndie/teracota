@@ -14,6 +14,7 @@ import { SpriteCharacter } from './sprite-character';
 import { SLEEP_AFTER, STATE_DEFS, TOOL_STATE_TIMEOUT } from './states';
 import { SvgCharacter } from './svg-character';
 import { walkStep } from './walk-plan';
+import { type Rect, clipRects, padRect, rectsFromGrid } from './shape';
 
 interface Reaction {
   pose?: Pose;
@@ -233,6 +234,8 @@ function release(clicked: boolean): void {
 function bindMouse(): void {
   window.addEventListener('mousemove', (e) => {
     if (!gesture.active) {
+      // com o recorte (Linux) os eventos só chegam dentro da área clicável: valem como hover
+      setHovering(character.hitTest(e.clientX, e.clientY));
       if (hovering) petting.track(e.screenX);
       return;
     }
@@ -261,6 +264,7 @@ function bindMouse(): void {
 
   // perdeu o foco no meio do arrasto (Alt+Tab, outra janela por cima)
   window.addEventListener('blur', () => release(false));
+  document.addEventListener('mouseleave', () => { if (!gesture.active) setHovering(false); });
 
   window.addEventListener('contextmenu', (e) => {
     e.preventDefault();
@@ -271,6 +275,52 @@ function bindMouse(): void {
   // qualquer motivo (recarregar, janela escondida/mostrada), se corrige sozinho.
   api?.setIgnoreMouse(true);
   window.setInterval(() => api?.setIgnoreMouse(!hovering && !gesture.active), 1000);
+}
+
+// ---------- área clicável (recorte da janela, usado no Linux) ----------
+
+const SHAPE_EVERY_MS = 150;
+/** Grade e folga do recorte: folga cobre a pose mudando entre um recálculo e outro */
+const SHAPE_CELL = 8;
+const SHAPE_PAD = 12;
+/** Mudanças pequenas (respiração, cauda) vão no máximo nesse intervalo; arrasto e balão vão na hora */
+const SHAPE_MIN_GAP_MS = 600;
+let lastShape = '';
+let lastShapeKind = '';
+let lastShapeAt = 0;
+
+function visibleRect(el: HTMLElement, hiddenClass?: string): Rect | null {
+  if (hiddenClass && el.classList.contains(hiddenClass)) return null;
+  const r = el.getBoundingClientRect();
+  return r.width && r.height ? { x: r.left, y: r.top, width: r.width, height: r.height } : null;
+}
+
+/** Personagem (pelos pixels opacos), balão e plaquinha; arrastando, a janela toda */
+function updateShape(): void {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  let rects: Rect[];
+  const bubbleOn = !document.getElementById('bubble')!.classList.contains('hidden');
+  const kind = `${dragging || gesture.active}:${bubbleOn}:${tagEl.classList.contains('empty')}`;
+  if (dragging || gesture.active) {
+    rects = [{ x: 0, y: 0, width: w, height: h }];
+  } else {
+    const c = character.root.getBoundingClientRect();
+    rects = rectsFromGrid((x, y) => character.hitTest(x, y), { x: c.left, y: c.top, width: c.width, height: c.height }, SHAPE_CELL, SHAPE_PAD);
+    for (const extra of [visibleRect(document.getElementById('bubble')!, 'hidden'), visibleRect(tagEl, 'empty')]) {
+      if (extra) rects.push(padRect(extra, 2));
+    }
+  }
+  rects = clipRects(rects.map((r) => ({ x: Math.round(r.x), y: Math.round(r.y), width: Math.round(r.width), height: Math.round(r.height) })), w, h);
+  // lista vazia faria a janela inteira voltar a ser clicável: um ponto no canto no lugar
+  if (!rects.length) rects = [{ x: 0, y: 0, width: 1, height: 1 }];
+  const key = JSON.stringify(rects);
+  const now = performance.now();
+  if (key === lastShape || (kind === lastShapeKind && now - lastShapeAt < SHAPE_MIN_GAP_MS)) return;
+  lastShape = key;
+  lastShapeKind = kind;
+  lastShapeAt = now;
+  api?.setShape(rects);
 }
 
 // ---------- inicialização ----------
@@ -336,6 +386,7 @@ async function init(): Promise<void> {
   systemReduced.addEventListener('change', () => { if (ready) applyReducedMotion(); });
   clock.start();
   bindMouse();
+  if (api) window.setInterval(updateShape, SHAPE_EVERY_MS);
   setState('idle');
   ready = true;
   for (const fn of pending.splice(0)) fn();

@@ -12,6 +12,7 @@ const api: CompanionApi = {
   onLeave: (cb) => { ipcRenderer.on(IPC.leave, () => cb()); },
   onMotion: (cb) => { ipcRenderer.on(IPC.motion, (_e, info) => cb(info)); },
   setIgnoreMouse: (ignore) => ipcRenderer.send(IPC.setIgnoreMouse, ignore),
+  setShape: (rects) => ipcRenderer.send(IPC.setShape, rects),
   openContextMenu: () => ipcRenderer.send(IPC.contextMenu),
   moveBy: (dx, dy) => ipcRenderer.send(IPC.moveBy, dx, dy),
   dragEnd: () => ipcRenderer.send(IPC.dragEnd),

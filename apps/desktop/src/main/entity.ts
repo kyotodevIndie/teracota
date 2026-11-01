@@ -8,6 +8,30 @@ import { recoverPosition } from './geometry';
 import { Walker } from './walker';
 
 export const SIZE = { width: 320, height: 440 };
+
+/**
+ * Linux (X11/XWayland): a área clicável é um recorte da janela (setShape), não o
+ * "ignorar o mouse e reativar quando ele passa em cima" do Windows/macOS. No XWayland o
+ * app só sabe onde está o cursor quando ele está sobre uma janela X11; com a janela
+ * ignorando o mouse, ele nunca "entra", e a Tera ficava impossível de clicar.
+ */
+export const USE_SHAPE = process.platform === 'linux';
+const MAX_SHAPE_RECTS = 200;
+
+/** Valida os retângulos vindos do renderer (inteiros, dentro da janela) */
+export function parseShape(input: unknown): Electron.Rectangle[] | null {
+  if (!Array.isArray(input) || input.length > MAX_SHAPE_RECTS) return null;
+  const out: Electron.Rectangle[] = [];
+  for (const r of input) {
+    const o = r as Record<string, unknown> | null;
+    const nums = [o?.x, o?.y, o?.width, o?.height];
+    if (!nums.every((n) => typeof n === 'number' && Number.isInteger(n))) return null;
+    const [x, y, width, height] = nums as number[];
+    if (x! < 0 || y! < 0 || width! <= 0 || height! <= 0 || x! + width! > SIZE.width || y! + height! > SIZE.height) return null;
+    out.push({ x: x!, y: y!, width: width!, height: height! });
+  }
+  return out;
+}
 const CURSOR_POLL_MS = 33;
 const LEAVE_MS = 2500;
 
@@ -78,15 +102,16 @@ export class Entity {
     // 'screen-saver' mantém acima até de janelas em tela cheia
     this.win.setAlwaysOnTop(true, 'screen-saver');
     this.win.setVisibleOnAllWorkspaces(true);
-    // Cliques atravessam a janela, exceto sobre o personagem (o renderer alterna isso)
-    this.win.setIgnoreMouseEvents(true, { forward: true });
+    // Cliques atravessam a janela, exceto sobre o personagem (o renderer alterna isso, ou
+    // manda o recorte no Linux; até o primeiro recorte chegar, a janela inteira é clicável)
+    if (!USE_SHAPE) this.win.setIgnoreMouseEvents(true, { forward: true });
     this.win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     this.win.once('ready-to-show', () => { if (opts.visible !== false) this.win.showInactive(); });
     let last = '';
     this.win.webContents.on('did-finish-load', () => {
       this.ready = true;
       // página nova (ou recarregada) começa deixando o clique passar, e recebe o cursor de novo
-      this.win.setIgnoreMouseEvents(true, { forward: true });
+      if (!USE_SHAPE) this.win.setIgnoreMouseEvents(true, { forward: true });
       last = '';
       this.win.webContents.send(IPC.mode, { mode: this.moveMode, announce: false });
       this.win.webContents.send(IPC.identity, this.identity);
@@ -164,7 +189,14 @@ export class Entity {
   }
 
   setIgnoreMouse(ignore: boolean): void {
-    if (this.alive) this.win.setIgnoreMouseEvents(ignore, { forward: true });
+    if (this.alive && !USE_SHAPE) this.win.setIgnoreMouseEvents(ignore, { forward: true });
+  }
+
+  /** Recorte da área clicável (só Linux); payload inválido é ignorado */
+  setShape(input: unknown): void {
+    if (!this.alive || !USE_SHAPE) return;
+    const rects = parseShape(input);
+    if (rects) this.win.setShape(rects);
   }
 
   moveBy(dx: number, dy: number): void {

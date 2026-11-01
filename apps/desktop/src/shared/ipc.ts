@@ -20,7 +20,16 @@ export const IPC = {
   walkTo: 'teracota:walk-to',
   walkArrived: 'teracota:walk-arrived',
   motion: 'teracota:motion',
+  setShape: 'teracota:set-shape',
 } as const;
+
+/** Retângulo em px da janela (recorte da área clicável) */
+export interface ShapeRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /** roam = passeia pela tela; stay = fica parado onde foi deixado */
 export type MoveMode = 'roam' | 'stay';
@@ -83,6 +92,8 @@ export interface CompanionApi {
   onLeave(cb: () => void): void;
   onMotion(cb: (info: MotionInfo) => void): void;
   setIgnoreMouse(ignore: boolean): void;
+  /** Área clicável da janela (o main só usa no Linux; nos outros sistemas vale o setIgnoreMouse) */
+  setShape(rects: ShapeRect[]): void;
   openContextMenu(): void;
   moveBy(dx: number, dy: number): void;
   dragEnd(): void;

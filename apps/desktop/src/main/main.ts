@@ -26,6 +26,7 @@ function onEntity<A extends unknown[]>(channel: string, fn: (entity: Entity, ...
 }
 
 onEntity<[boolean]>(IPC.setIgnoreMouse, (entity, ignore) => entity.setIgnoreMouse(ignore));
+onEntity<[unknown]>(IPC.setShape, (entity, rects) => entity.setShape(rects));
 onEntity<[number, number]>(IPC.moveBy, (entity, dx, dy) => entity.moveBy(dx, dy));
 onEntity(IPC.dragEnd, (entity) => entity.settle());
 onEntity<[number, number]>(IPC.walkTo, (entity, x, y) => {
