@@ -12,7 +12,7 @@ import type { LayerOffset, PoseLayer, RigManifest } from './rig';
 export type RigMotion = 'walk' | 'drag' | null;
 
 export interface AnimatorInput {
-  /** Pose pedida (idle, work, sleep...). Pose sem definição no rig = repouso */
+  /** Pose pedida (idle, work, sleep...). Pose sem definição no rig = idle; '' = repouso */
   pose: string;
   expression: string;
   talking: boolean;
@@ -68,7 +68,8 @@ export class RigAnimator {
     const dt = this.last === null ? Number.POSITIVE_INFINITY : Math.min(250, now - this.last);
     this.last = now;
     const { rig } = this;
-    const pose: Record<string, PoseLayer> = rig.poses[input.pose]?.layers ?? rig.poses.idle?.layers ?? {};
+    // pose vazia ('') = o repouso do rig, sem pose nenhuma (o Skin Studio monta o rig assim)
+    const pose: Record<string, PoseLayer> = input.pose === '' ? {} : rig.poses[input.pose]?.layers ?? rig.poses.idle?.layers ?? {};
 
     // 1. pose: cada camada persegue o alvo da pose atual (sem pose = repouso)
     const k = dt === Number.POSITIVE_INFINITY ? 1 : approach(dt, POSE_TAU_MS);

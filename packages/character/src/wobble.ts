@@ -1,7 +1,7 @@
 // Movimento procedural contínuo por cima dos frames da skin (respirar, balançar,
 // quicar ao andar, pêndulo ao ser carregada). Com só 4 frames por animação, é o
 // que deixa o personagem fluido — roda a cada quadro da tela.
-import type { Pose } from '@tera/character/skin';
+import type { Pose } from './skin';
 
 export interface Wobble {
   /** Deslocamento em px de tela */

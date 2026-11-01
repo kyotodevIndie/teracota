@@ -103,6 +103,17 @@ export class RigScene {
     if (debug) this.drawDebug(ctx, root);
   }
 
+  /** Matriz px da camada → px do rig, do último quadro desenhado */
+  worldOf(id: string): Mat | undefined {
+    return this.world.get(id);
+  }
+
+  /** Tamanho da imagem padrão da camada (o espaço do pivô e do `at` dos filhos) */
+  sizeOf(id: string): { width: number; height: number } | undefined {
+    const l = this.loaded.get(id);
+    return l && { width: l.width, height: l.height };
+  }
+
   /** Camada sob o ponto (px do rig), considerando o último quadro desenhado; null = nenhuma */
   hit(x: number, y: number): string | null {
     return hitLayer(this.visible, this.world, this.masks, x, y);

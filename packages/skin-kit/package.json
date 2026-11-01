@@ -1,0 +1,25 @@
+{
+  "name": "@tera/skin-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ferramentas de skin da Tera sem interface: validar uma pasta de skin, JSON Schema do rig, ler PNG e criar uma skin nova",
+  "type": "module",
+  "exports": {
+    "./validate": "./src/validate.ts",
+    "./schema": "./src/schema.ts",
+    "./png": "./src/png.ts",
+    "./scaffold": "./src/scaffold.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tera/character": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

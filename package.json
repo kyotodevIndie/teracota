@@ -13,6 +13,8 @@
     "watch": "pnpm --filter @tera/desktop watch",
     "demo": "pnpm --filter @tera/desktop demo",
     "import-skin": "pnpm --filter @tera/desktop import-skin",
+    "skin": "pnpm --filter @tera/skin-studio --silent build && node apps/skin-studio/dist/cli.js",
+    "skin:studio": "pnpm --filter @tera/skin-studio --silent build && node apps/skin-studio/dist/cli.js studio",
     "typecheck": "pnpm -r typecheck",
     "lint": "biome lint",
     "test": "pnpm -r test",

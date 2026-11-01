@@ -1,0 +1,26 @@
+{
+  "name": "@tera/skin-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Skin Studio da Tera: editor visual de rigs no navegador e o comando tera-skin (criar, validar, renderizar prévias)",
+  "bin": {
+    "tera-skin": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@tera/character": "workspace:*",
+    "@tera/skin-kit": "workspace:*",
+    "@types/node": "^26.6.2",
+    "electron": "^44.9.3",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  },
+  "author": "Thallys Morais",
+  "license": "MIT"
+}

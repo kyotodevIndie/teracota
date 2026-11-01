@@ -7,7 +7,7 @@ import { HIT_MASK_SIZE, type Pose, type SkinInfo, type SkinSwing } from '@tera/c
 import type { Character, Motion } from './character';
 import type { Look } from './look';
 import { IDLE_FPS, MOTION_FPS } from './frame-clock';
-import { FEET_Y, WobbleMixer } from './wobble';
+import { FEET_Y, WobbleMixer } from '@tera/character/wobble';
 
 /** Se a skin não tiver a pose, usa esta no lugar */
 const FALLBACK: Record<Pose, Pose> = {

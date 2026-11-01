@@ -15,3 +15,7 @@ docs/.vitepress/dist/
 
 # relatórios do vitest (--reporter=json)
 .vitest/
+
+# Skin Studio: prévias renderizadas (tera-skin render) e backup do rig ao salvar
+assets/skins/*/previews/
+*.json.bak

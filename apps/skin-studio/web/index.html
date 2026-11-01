@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skin Studio — Tera</title>
+  <link rel="stylesheet" href="studio.css" />
+</head>
+<body>
+  <header id="top">
+    <span class="brand"><span class="dot"></span>Skin Studio</span>
+    <span id="skin-name" class="skin-name"></span>
+    <span id="dirty" class="dirty" hidden>não salvo</span>
+    <span class="spacer"></span>
+    <button id="undo" type="button" title="Desfazer (Ctrl+Z)">↶</button>
+    <button id="redo" type="button" title="Refazer (Ctrl+Shift+Z)">↷</button>
+    <button id="report-chip" class="chip" type="button" title="Ver erros e avisos"></button>
+    <button id="save" class="primary" type="button" title="Salvar no rig.json (Ctrl+S)">Salvar</button>
+  </header>
+
+  <div id="disk-banner" class="banner" hidden>
+    <span>O rig.json mudou no disco (outro programa salvou).</span>
+    <button id="disk-reload" type="button">Carregar o do disco</button>
+    <button id="disk-keep" type="button">Manter o meu</button>
+  </div>
+
+  <main id="layout">
+    <aside id="left" aria-label="Camadas">
+      <div class="panel-head">
+        <h2>Camadas</h2>
+        <button id="add-layer" type="button" title="Adicionar camada com um PNG da pasta">+</button>
+      </div>
+      <ul id="layers" class="layers"></ul>
+      <p class="hint">Solte PNGs aqui (ou em qualquer lugar) pra criar camadas. Eles vão pra <code>parts/</code>.</p>
+      <div class="panel-head"><h2>Partes da pasta</h2></div>
+      <ul id="files" class="files"></ul>
+    </aside>
+
+    <section id="center">
+      <div id="stage-wrap">
+        <canvas id="stage" tabindex="0" aria-label="Prévia do rig"></canvas>
+        <div id="stage-hint" class="stage-hint"></div>
+      </div>
+      <div id="playbar">
+        <div class="seg" role="group" aria-label="Modo">
+          <button id="mode-edit" type="button" aria-pressed="true">Montar</button>
+          <button id="mode-play" type="button" aria-pressed="false">Testar</button>
+        </div>
+        <div id="play-states" class="states" hidden></div>
+        <span class="spacer"></span>
+        <label class="check"><input id="opt-walk" type="checkbox" /> Andar</label>
+        <label class="check"><input id="opt-talk" type="checkbox" /> Falar</label>
+        <label class="check"><input id="opt-reduced" type="checkbox" /> Menos movimento</label>
+        <label class="check"><input id="opt-debug" type="checkbox" /> Pivôs</label>
+        <button id="zoom-reset" type="button" title="Enquadrar">⤢</button>
+      </div>
+    </section>
+
+    <aside id="right" aria-label="Propriedades">
+      <nav id="tabs" class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="layer" aria-selected="true">Camada</button>
+        <button type="button" role="tab" data-tab="pose" aria-selected="false">Poses</button>
+        <button type="button" role="tab" data-tab="expr" aria-selected="false">Expressões</button>
+        <button type="button" role="tab" data-tab="ctrl" aria-selected="false">Movimentos</button>
+        <button type="button" role="tab" data-tab="json" aria-selected="false">JSON</button>
+        <button type="button" role="tab" data-tab="report" aria-selected="false">Conferir</button>
+      </nav>
+      <div id="tab-layer" class="tab"></div>
+      <div id="tab-pose" class="tab" hidden></div>
+      <div id="tab-expr" class="tab" hidden></div>
+      <div id="tab-ctrl" class="tab" hidden></div>
+      <div id="tab-json" class="tab" hidden>
+        <p class="hint">O rig.json inteiro. "Aplicar" troca o que está na tela (e dá pra desfazer).</p>
+        <textarea id="json-text" spellcheck="false"></textarea>
+        <div class="row"><button id="json-apply" class="primary" type="button">Aplicar</button><span id="json-error" class="error-text"></span></div>
+      </div>
+      <div id="tab-report" class="tab" hidden></div>
+    </aside>
+  </main>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script src="studio.js"></script>
+</body>
+</html>

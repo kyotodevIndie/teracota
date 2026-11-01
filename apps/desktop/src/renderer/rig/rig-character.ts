@@ -14,7 +14,7 @@ import type { Pose, SkinInfo } from '@tera/character/skin';
 import type { Character, Motion } from '../character';
 import type { Look } from '../look';
 import { IDLE_FPS, MOTION_FPS } from '../frame-clock';
-import { WobbleMixer } from '../wobble';
+import { WobbleMixer } from '@tera/character/wobble';
 
 /** Ponto por onde ela é segurada ao ser arrastada (fração da altura), igual às sprites */
 const GRIP_Y = 0.04;

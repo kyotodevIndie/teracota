@@ -21,6 +21,11 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Skin Studio e `tera-skin`** (pra quem cria skins): editor visual de rigs no navegador
+  (montar camadas, pivôs, poses, expressões e movimentos, testar cada estado do app) e um
+  comando pra criar, validar e renderizar a skin com o motor da Tera, gerando uma folha de
+  conferência em PNG. Feito pra funcionar junto com agentes de código: o que o agente muda
+  no `rig.json` aparece no editor na hora (`docs/dev/skin-studio.md`)
 - **Sessões ao vivo**: todas as sessões do Claude Code do PC (terminal, IDE, aba Terminal da
   Tera) aparecem com o que estão fazendo (lendo, editando, rodando comando…) e as
   encerradas há pouco

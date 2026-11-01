@@ -9,7 +9,10 @@
     "./skin": "./src/skin.ts",
     "./scene": "./src/scene.ts",
     "./controllers": "./src/controllers.ts",
-    "./animator": "./src/animator.ts"
+    "./animator": "./src/animator.ts",
+    "./wobble": "./src/wobble.ts",
+    "./preview": "./src/preview.ts",
+    "./states": "./src/states.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
