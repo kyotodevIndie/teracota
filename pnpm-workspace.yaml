@@ -5,10 +5,12 @@ packages:
 # Scripts de instalação liberados (o resto fica bloqueado):
 # - electron: baixa e confere (checksum) o binário do Electron
 # - esbuild: instala o binário nativo do bundler
+# - node-pty: terminal embutido (usa o binário pré-compilado; compila só se faltar)
 # O electron-winstaller (Squirrel) não é usado: o instalador do Windows é NSIS.
 allowBuilds:
   electron: true
   esbuild: true
+  node-pty: true
   electron-winstaller: false
 
 # Correções de segurança em dependências transitivas do MCP SDK (que vai no bundle do

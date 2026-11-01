@@ -49,6 +49,11 @@ export class PanelWindow {
     if (event.type === 'permission-request' && !this.win!.isVisible()) this.win!.showInactive();
   }
 
+  /** Mensagem crua pra interface (ex.: saída do terminal); ignorada se a janela não existe */
+  sendRaw(channel: string, payload: unknown): void {
+    if (this.alive) this.win!.webContents.send(channel, payload);
+  }
+
   /** Chamar no before-quit: a partir daí fechar fecha de verdade */
   markQuitting(): void {
     this.quitting = true;
@@ -61,10 +66,10 @@ export class PanelWindow {
 
   private create(): void {
     const win = new BrowserWindow({
-      width: 400,
-      height: 600,
-      minWidth: 320,
-      minHeight: 420,
+      width: 760,
+      height: 680,
+      minWidth: 420,
+      minHeight: 480,
       title: 'Tera',
       frame: true,
       resizable: true,

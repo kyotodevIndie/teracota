@@ -13,7 +13,9 @@ import type { AgentSignal } from '../integrations/types';
 import { BRIDGE_PROVIDERS } from '../integrations';
 import type { EntityManager } from '../manager';
 import { adapterById, connectAgent, connectionStatus, connectOpenSessions, setSpeech } from '../connect-flow';
-import { makeAppPanelHandlers } from './app-ipc';
+import { APP_PANEL_IPC } from '../../shared/app-panel';
+import { makeAppPanelHandlers, makeTerminalListeners } from './app-ipc';
+import { EmbeddedTerminal, type SpawnPty } from './terminal';
 import { makePanelHandlers } from './ipc';
 import { resolvePickFolder } from './pick-folder';
 import { PanelWindow } from './window';
@@ -33,6 +35,11 @@ export interface AgentPanelOptions {
 export class AgentPanel {
   readonly bridge = new BridgeManager([...BRIDGE_PROVIDERS, ...(simEnabled() ? [createSimulatedProvider()] : [])]);
   readonly window = new PanelWindow();
+  /** Terminal embutido (shell do usuário + o `claude` dele): um por vez, vive enquanto o app vive */
+  readonly terminal = new EmbeddedTerminal(spawnPty, {
+    data: (data) => this.window.sendRaw(APP_PANEL_IPC.terminalData, data),
+    exit: (code) => this.window.sendRaw(APP_PANEL_IPC.terminalExit, code),
+  });
   /** Pastas temporárias da simulação criadas por este app (removidas ao sair) */
   private readonly simDirs = new Set<string>();
 
@@ -65,8 +72,28 @@ export class AgentPanel {
     }
 
     const manager = opts.manager;
+    const isPanelSender = (sender: unknown) => this.window.isSender((sender as { sender?: unknown } | null)?.sender);
+    const terminal = {
+      pickFolder: async () => {
+        const opts: Electron.OpenDialogOptions = { title: 'Pasta do terminal', properties: ['openDirectory'] };
+        const parent = this.window.native;
+        const r = parent ? await dialog.showOpenDialog(parent, opts) : await dialog.showOpenDialog(opts);
+        const dir = r.canceled ? null : (r.filePaths[0] ?? null);
+        if (dir) this.terminal.setFolder(dir);
+        return dir ? path.basename(dir) || dir : null;
+      },
+      start: (cols: number, rows: number, claude: boolean) => this.terminal.start(cols, rows, claude),
+      snapshot: () => this.terminal.snapshot(),
+      kill: () => this.terminal.kill(),
+      write: (data: string) => this.terminal.write(data),
+      resize: (cols: number, rows: number) => this.terminal.resize(cols, rows),
+    };
+    for (const [channel, listener] of Object.entries(makeTerminalListeners({ isPanelSender, terminal }))) {
+      ipcMain.on(channel, (event, payload: unknown) => listener(event, payload));
+    }
     const appHandlers = makeAppPanelHandlers({
-      isPanelSender: (sender) => this.window.isSender((sender as { sender?: unknown } | null)?.sender),
+      isPanelSender,
+      terminal,
       connections: connectionStatus,
       connect: async (id) => {
         const adapter = adapterById(id);
@@ -93,6 +120,7 @@ export class AgentPanel {
 
     app.on('before-quit', () => {
       this.window.markQuitting();
+      this.terminal.kill();
       this.bridge.closeAll();
       this.cleanSimDirs();
     });
@@ -114,6 +142,12 @@ export class AgentPanel {
     this.window.show();
   }
 }
+
+/** node-pty carregado sob demanda (módulo nativo): o app abre mesmo se ele faltar */
+const spawnPty: SpawnPty = (file, args, opts) => {
+  const pty = require('node-pty') as typeof import('node-pty');
+  return pty.spawn(file, args, opts);
+};
 
 let current: AgentPanel | null = null;
 

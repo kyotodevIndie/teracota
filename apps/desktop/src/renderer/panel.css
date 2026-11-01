@@ -45,3 +45,14 @@ h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacin
 .agent-actions { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; align-items: center; }
 .agent label { display: flex; gap: 5px; align-items: center; color: #c9c9da; }
 .agent code { font-family: ui-monospace, monospace; font-size: 11px; color: #c9c9da; }
+
+/* abas: terminal (padrão) e conversa pela API */
+#tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid #2d2d38; }
+#tabs [role="tab"] { border-radius: 6px 6px 0 0; border-bottom: 0; background: transparent; color: #9a9ab0; }
+#tabs [role="tab"][aria-selected="true"] { background: #2a2a35; color: #e8e8ee; }
+.tab { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.term-bar { padding: 8px 10px; border-bottom: 1px solid #2d2d38; }
+#term-cwd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#term { flex: 1; min-height: 0; padding: 6px 0 0 8px; background: #14141a; }
+#term .xterm { height: 100%; }
+#agents { flex: none; }

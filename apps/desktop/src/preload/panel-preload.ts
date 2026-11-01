@@ -23,6 +23,16 @@ const appApi: AppPanelApi = {
   connect: (id) => ipcRenderer.invoke(APP_PANEL_IPC.connect, { id }),
   setSpeech: (id, on) => ipcRenderer.invoke(APP_PANEL_IPC.setSpeech, { id, on }),
   copyOpenSessions: (id) => ipcRenderer.invoke(APP_PANEL_IPC.copyOpenSessions, { id }),
+  terminal: {
+    pickFolder: () => ipcRenderer.invoke(APP_PANEL_IPC.terminalPickFolder),
+    start: (cols, rows, claude) => ipcRenderer.invoke(APP_PANEL_IPC.terminalStart, { cols, rows, claude }),
+    input: (data) => ipcRenderer.send(APP_PANEL_IPC.terminalInput, data),
+    resize: (cols, rows) => ipcRenderer.send(APP_PANEL_IPC.terminalResize, { cols, rows }),
+    kill: () => ipcRenderer.invoke(APP_PANEL_IPC.terminalKill),
+    snapshot: () => ipcRenderer.invoke(APP_PANEL_IPC.terminalSnapshot),
+    onData: (cb) => { ipcRenderer.on(APP_PANEL_IPC.terminalData, (_e, data: string) => cb(data)); },
+    onExit: (cb) => { ipcRenderer.on(APP_PANEL_IPC.terminalExit, (_e, code: number) => cb(code)); },
+  },
 };
 
 contextBridge.exposeInMainWorld('teracotaApp', appApi);

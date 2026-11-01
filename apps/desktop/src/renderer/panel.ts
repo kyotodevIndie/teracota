@@ -1,4 +1,5 @@
-// Renderer da interface da Tera: agentes (conexão) + conversa (Agent Bridge). Todo texto
+// Renderer da interface da Tera: agentes (conexão), terminal (aba padrão, panel-terminal.ts)
+// e conversa pela API (Agent Bridge). Todo texto
 // entra via textContent — nada de innerHTML nem markdown. Quem decide o estado é o main;
 // aqui só se desenha.
 import type {
@@ -6,6 +7,7 @@ import type {
   SessionSnapshot,
 } from '@tera/agent-bridge/contract';
 import type { AgentConnection } from '../shared/app-panel';
+import { mountTerminalTab } from './panel-terminal';
 
 const api = window.teracotaPanel!;
 const appApi = window.teracotaApp!;
@@ -376,6 +378,23 @@ async function refreshAgents(): Promise<void> {
     lastAgents = data;
     renderAgents(data);
   }
+}
+
+// ---------- abas ----------
+
+const terminalTab = mountTerminalTab({ api: appApi.terminal, unwrap });
+const TABS = [
+  { tab: $('tab-terminal'), panel: $('terminal-tab'), onShow: () => terminalTab.show() },
+  { tab: $('tab-chat'), panel: $('chat-tab'), onShow: () => {} },
+];
+for (const t of TABS) {
+  t.tab.onclick = () => {
+    for (const o of TABS) {
+      o.tab.setAttribute('aria-selected', String(o === t));
+      o.panel.hidden = o !== t;
+    }
+    t.onShow();
+  };
 }
 
 api.onEvent(onEvent);

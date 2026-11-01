@@ -17,6 +17,8 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Terminal na janela da Tera**: o seu shell e o seu `claude` (com o login que você já
+  usa, sem API paga); a Tera reage a essa sessão como a qualquer outra
 - "Reduzir movimento" no menu (e respeita o `prefers-reduced-motion` do sistema)
 - Linux: o app se reabre em XWayland quando a sessão é Wayland (lá a janela não se posiciona)
 - A Tera volta pra tela se for solta fora da área útil ou se um monitor for desligado; o

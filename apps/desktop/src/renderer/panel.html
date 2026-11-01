@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
   <title>Tera</title>
+  <link rel="stylesheet" href="xterm.css" />
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
@@ -13,7 +14,23 @@
     <p class="note">Conectado, o agente faz a Tera reagir enquanto você trabalha nele.</p>
     <ul id="agent-list"></ul>
   </section>
-  <h2 class="section-title">Conversar por aqui</h2>
+  <div id="tabs" role="tablist" aria-label="Como conversar">
+    <button id="tab-terminal" role="tab" type="button" aria-selected="true" aria-controls="terminal-tab" data-testid="tab-terminal">Terminal</button>
+    <button id="tab-chat" role="tab" type="button" aria-selected="false" aria-controls="chat-tab" data-testid="tab-chat">Conversa (API)</button>
+  </div>
+  <section id="terminal-tab" class="tab" role="tabpanel" aria-labelledby="tab-terminal">
+    <div class="row term-bar">
+      <button id="term-folder" type="button" data-testid="term-folder">Pasta…</button>
+      <span id="term-cwd" class="note" data-testid="term-cwd">pasta pessoal</span>
+      <span class="spacer"></span>
+      <button id="term-claude" type="button" data-testid="term-claude">Abrir o Claude</button>
+      <button id="term-shell" type="button" data-testid="term-shell">Só o terminal</button>
+      <button id="term-kill" type="button" data-testid="term-kill" hidden>Fechar terminal</button>
+    </div>
+    <div id="term-empty" class="empty">O seu terminal, com o seu <code>claude</code> e o login que você já usa.<br />A Tera reage a esta sessão como a qualquer outra.</div>
+    <div id="term" data-testid="terminal" hidden></div>
+  </section>
+  <section id="chat-tab" class="tab" role="tabpanel" aria-labelledby="tab-chat" hidden>
   <header id="setup">
     <div class="row">
       <select id="provider" data-testid="provider-select" aria-label="Agente"></select>
@@ -57,6 +74,7 @@
     </div>
   </footer>
   <div id="collapse-only" class="row"><span class="spacer"></span><button id="collapse2" data-testid="collapse-idle" type="button">Recolher</button></div>
+  </section>
   <script src="panel.js"></script>
 </body>
 </html>

@@ -8,10 +8,10 @@ const watch = process.argv.includes('--watch');
 const STATIC = ['index.html', 'style.css', 'panel.html', 'panel.css'];
 
 const common = { bundle: true, logLevel: 'info', sourcemap: 'linked' };
-// Só o Electron e o Agent SDK ficam de fora do bundle: o SDK é ESM com import.meta e é
-// carregado sob demanda; ele vai pro pacote como dependência. O resto (zod, MCP SDK e os
+// Ficam de fora do bundle: o Electron, o Agent SDK (ESM com import.meta, carregado sob
+// demanda) e o node-pty (módulo nativo); os dois últimos vão pro pacote como dependência. O resto (zod, MCP SDK e os
 // pacotes do workspace) entra no bundle.
-const node = { ...common, platform: 'node', target: 'node22', external: ['electron', '@anthropic-ai/claude-agent-sdk'] };
+const node = { ...common, platform: 'node', target: 'node22', external: ['electron', '@anthropic-ai/claude-agent-sdk', 'node-pty'] };
 
 const builds = [
   { ...node, entryPoints: ['src/main/main.ts'], outfile: 'dist/main.js', format: 'cjs' },
@@ -31,6 +31,7 @@ const builds = [
 async function copyStatic() {
   await mkdir('dist/renderer', { recursive: true });
   await Promise.all(STATIC.map((f) => copyFile(`src/renderer/${f}`, `dist/renderer/${f}`)));
+  await copyFile('node_modules/@xterm/xterm/css/xterm.css', 'dist/renderer/xterm.css');
   await mkdir('dist/scripts/rig-inspect', { recursive: true });
   await copyFile('scripts/rig-inspect/index.html', 'dist/scripts/rig-inspect/index.html');
 }

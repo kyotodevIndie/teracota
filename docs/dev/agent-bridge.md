@@ -1,12 +1,18 @@
 # Agent Bridge e a interface da Tera
 
 Clicar na Tera abre a **interface** dela (uma janela só, separada da personagem; fechar só
-esconde). Ela tem duas partes:
+esconde). Ela tem três partes:
 
 - **Agentes no terminal**: estado da conexão com cada agente (hooks), botão Conectar,
   copiar o comando pras sessões já abertas e as falas por MCP (`src/main/panel/app-ipc.ts`,
   contrato em `apps/desktop/src/shared/app-panel.ts`).
-- **Conversar por aqui**: sessões do Agent Bridge (`@tera/agent-bridge`). A Tera reage à
+- **Aba Terminal** (a padrão, **sem custo**): um terminal de verdade (`node-pty` +
+  xterm.js, `src/main/panel/terminal.ts` e `src/renderer/panel-terminal.ts`) com o shell do
+  usuário; "Abrir o Claude" roda o `claude` oficial com o login que o usuário já tem. Não
+  usa o Agent SDK nem API: o app só hospeda o terminal. Os hooks do plugin disparam como em
+  qualquer terminal, então a Tera reage a esta sessão também. Um terminal por vez; fechar a
+  janela não mata o terminal, sair do app sim. Ctrl+Shift+C / Ctrl+Shift+V copiam e colam.
+- **Aba Conversa (API)**: sessões do Agent Bridge (`@tera/agent-bridge`). A Tera reage à
   sessão pelo mesmo caminho dos agentes externos (Companion Core), sem hooks, `CLAUDE.md`
   nem settings do projeto.
 

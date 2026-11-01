@@ -2,12 +2,32 @@
 // contrato do Agent Bridge (@tera/agent-bridge/contract), que é só sobre sessões.
 import type { PanelResult } from '@tera/agent-bridge/contract';
 
+export type PanelResultLike<T> = PanelResult<T>;
+
 export const APP_PANEL_IPC = {
   connections: 'tera:connections',
   connect: 'tera:connect',
   setSpeech: 'tera:set-speech',
   copyOpenSessions: 'tera:copy-open-sessions',
+  terminalPickFolder: 'tera:terminal-pick-folder',
+  terminalStart: 'tera:terminal-start',
+  terminalInput: 'tera:terminal-input',
+  terminalResize: 'tera:terminal-resize',
+  terminalKill: 'tera:terminal-kill',
+  terminalSnapshot: 'tera:terminal-snapshot',
+  /** main -> renderer */
+  terminalData: 'tera:terminal-data',
+  terminalExit: 'tera:terminal-exit',
 } as const;
+
+/** Estado do terminal embutido (um por vez; sobrevive a esconder a janela) */
+export interface TerminalSnapshot {
+  running: boolean;
+  /** Nome da pasta onde o terminal roda (null = pasta pessoal) */
+  cwdLabel: string | null;
+  /** Saída recente, pra redesenhar se a página da interface recarregar */
+  scrollback: string;
+}
 
 /** Um agente que a Tera sabe conectar (hooks) e o estado dele */
 export interface AgentConnection {
@@ -31,6 +51,19 @@ export interface AppPanelApi {
   connect(id: string): Promise<PanelResult<AgentConnection[]>>;
   setSpeech(id: string, on: boolean): Promise<PanelResult<AgentConnection[]>>;
   copyOpenSessions(id: string): Promise<PanelResult<null>>;
+  /** Terminal embutido: roda o shell do usuário (e o `claude` dele) com o login que ele já tem */
+  terminal: {
+    /** Seletor de pasta do sistema; null = cancelou */
+    pickFolder(): Promise<PanelResult<string | null>>;
+    /** Abre o terminal na pasta escolhida; claude = já roda `claude` ao abrir */
+    start(cols: number, rows: number, claude: boolean): Promise<PanelResult<TerminalSnapshot>>;
+    input(data: string): void;
+    resize(cols: number, rows: number): void;
+    kill(): Promise<PanelResult<null>>;
+    snapshot(): Promise<PanelResult<TerminalSnapshot>>;
+    onData(cb: (data: string) => void): void;
+    onExit(cb: (code: number) => void): void;
+  };
 }
 
 declare global {
