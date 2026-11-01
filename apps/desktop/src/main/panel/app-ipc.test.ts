@@ -15,6 +15,7 @@ function setup() {
     connect: vi.fn(async (id: string) => id === 'claude-code'),
     setSpeech: vi.fn(async (id: string) => id === 'claude-code'),
     copyOpenSessions: vi.fn((id: string) => id === 'claude-code'),
+    minimize: vi.fn(),
     terminal: {
       pickFolder: vi.fn(async () => 'projeto'),
       start: vi.fn((): { running: boolean; cwdLabel: string | null; scrollback: string } => ({ running: true, cwdLabel: 'projeto', scrollback: '' })),

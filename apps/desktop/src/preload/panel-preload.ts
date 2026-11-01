@@ -23,6 +23,7 @@ const appApi: AppPanelApi = {
   connect: (id) => ipcRenderer.invoke(APP_PANEL_IPC.connect, { id }),
   setSpeech: (id, on) => ipcRenderer.invoke(APP_PANEL_IPC.setSpeech, { id, on }),
   copyOpenSessions: (id) => ipcRenderer.invoke(APP_PANEL_IPC.copyOpenSessions, { id }),
+  minimize: () => ipcRenderer.invoke(APP_PANEL_IPC.minimize),
   terminal: {
     pickFolder: () => ipcRenderer.invoke(APP_PANEL_IPC.terminalPickFolder),
     start: (cols, rows, claude) => ipcRenderer.invoke(APP_PANEL_IPC.terminalStart, { cols, rows, claude }),

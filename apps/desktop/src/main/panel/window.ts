@@ -71,7 +71,14 @@ export class PanelWindow {
       minWidth: 420,
       minHeight: 480,
       title: 'Tera',
-      frame: true,
+      // visual próprio (vidro): sem moldura do sistema, fundo transparente; a barra de
+      // título é do HTML. Windows 11 e macOS desfocam o que está atrás de verdade; no Linux
+      // o vidro desfoca o fundo desenhado na própria janela
+      frame: false,
+      transparent: true,
+      backgroundColor: '#00000000',
+      ...(process.platform === 'win32' && { backgroundMaterial: 'acrylic' as const }),
+      ...(process.platform === 'darwin' && { vibrancy: 'under-window' as const, visualEffectState: 'active' as const }),
       resizable: true,
       alwaysOnTop: false,
       show: false,

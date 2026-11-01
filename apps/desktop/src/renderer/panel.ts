@@ -240,7 +240,8 @@ stopBtn.addEventListener('click', async () => {
 $('end').addEventListener('click', async () => {
   if (session) unwrap(await api.closeSession(session.handle));
 });
-for (const id of ['collapse', 'collapse2']) $(id).addEventListener('click', () => void api.hide());
+for (const id of ['collapse', 'collapse2', 'win-close']) $(id).addEventListener('click', () => void api.hide());
+$('win-min').addEventListener('click', () => void appApi.minimize());
 
 async function answer(allow: boolean): Promise<void> {
   const p = permissions[0];

@@ -8,6 +8,12 @@
   <link rel="stylesheet" href="panel.css" />
 </head>
 <body>
+  <div id="titlebar">
+    <span class="brand"><span class="brand-dot"></span>Tera</span>
+    <span class="spacer"></span>
+    <button id="win-min" class="win-btn" type="button" aria-label="Minimizar" data-testid="win-min">–</button>
+    <button id="win-close" class="win-btn close" type="button" aria-label="Fechar (a Tera continua no desktop)" data-testid="win-close">×</button>
+  </div>
   <div id="sim-banner" data-testid="sim-banner" role="status" hidden>SIMULAÇÃO — nenhum agente real</div>
   <section id="agents" data-testid="agents" aria-labelledby="agents-title">
     <h2 id="agents-title">Agentes no terminal</h2>

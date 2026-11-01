@@ -94,6 +94,7 @@ export class AgentPanel {
     const appHandlers = makeAppPanelHandlers({
       isPanelSender,
       terminal,
+      minimize: () => this.window.native?.minimize(),
       connections: connectionStatus,
       connect: async (id) => {
         const adapter = adapterById(id);

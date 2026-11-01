@@ -11,6 +11,7 @@ export interface AppPanelDeps {
   connect(id: string): Promise<boolean>;
   setSpeech(id: string, on: boolean): Promise<boolean>;
   copyOpenSessions(id: string): boolean;
+  minimize(): void;
   terminal: {
     /** Seletor do sistema (o consentimento); devolve o nome da pasta ou null */
     pickFolder(): Promise<string | null>;
@@ -58,6 +59,10 @@ export function makeAppPanelHandlers(deps: AppPanelDeps): Record<string, AppPane
     [APP_PANEL_IPC.setSpeech]: guarded(schemas.setSpeech, async ({ id, on }) => ((await deps.setSpeech(id, on)) ? list() : { ok: false, error: UNKNOWN })),
     [APP_PANEL_IPC.copyOpenSessions]: guarded(schemas.copyOpenSessions, async ({ id }) =>
       (deps.copyOpenSessions(id) ? { ok: true, data: null } : { ok: false, error: UNKNOWN })),
+    [APP_PANEL_IPC.minimize]: guarded(schemas.connections, async () => {
+      deps.minimize();
+      return { ok: true, data: null };
+    }),
     [APP_PANEL_IPC.terminalPickFolder]: guarded(schemas.connections, async () => ({ ok: true, data: await deps.terminal.pickFolder() })),
     [APP_PANEL_IPC.terminalStart]: guarded(schemas.terminalStart, async ({ cols, rows, claude }) => ({ ok: true, data: deps.terminal.start(cols, rows, claude) })),
     [APP_PANEL_IPC.terminalSnapshot]: guarded(schemas.connections, async () => ({ ok: true, data: deps.terminal.snapshot() })),

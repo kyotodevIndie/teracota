@@ -26,7 +26,11 @@ export function mountTerminalTab({ api, unwrap }: TerminalTabOptions): { show():
     fontSize: 13,
     cursorBlink: true,
     scrollback: 5000,
-    theme: { background: '#14141a', foreground: '#e8e8ee', cursor: '#d97757', selectionBackground: '#3a3a55' },
+    allowTransparency: true, // o vidro da interface aparece por trás do terminal
+    theme: {
+      background: 'rgba(10, 9, 16, 0.55)', foreground: '#ecebf5', cursor: '#f0a07c', cursorAccent: '#1a1424',
+      selectionBackground: 'rgba(217, 119, 87, 0.35)',
+    },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);

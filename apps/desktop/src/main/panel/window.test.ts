@@ -40,10 +40,10 @@ const closeEvent = () => ({ preventDefault: vi.fn() });
 beforeEach(() => { created.length = 0; });
 
 describe('janela do painel', () => {
-  it('cria com moldura, redimensionável, sem always-on-top e isolada', () => {
+  it('cria sem moldura do sistema (barra própria, vidro), redimensionável, sem always-on-top e isolada', () => {
     new PanelWindow().show();
     const o = created[0]!.options;
-    expect(o).toMatchObject({ frame: true, resizable: true, alwaysOnTop: false });
+    expect(o).toMatchObject({ frame: false, transparent: true, resizable: true, alwaysOnTop: false });
     expect(o.webPreferences).toMatchObject({ sandbox: true, contextIsolation: true, nodeIntegration: false });
     expect(created[0]!.webContents.setWindowOpenHandler.mock.calls[0]![0]()).toEqual({ action: 'deny' });
     const nav = closeEvent();

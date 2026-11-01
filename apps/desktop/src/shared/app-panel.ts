@@ -15,6 +15,7 @@ export const APP_PANEL_IPC = {
   terminalResize: 'tera:terminal-resize',
   terminalKill: 'tera:terminal-kill',
   terminalSnapshot: 'tera:terminal-snapshot',
+  minimize: 'tera:minimize',
   /** main -> renderer */
   terminalData: 'tera:terminal-data',
   terminalExit: 'tera:terminal-exit',
@@ -51,6 +52,8 @@ export interface AppPanelApi {
   connect(id: string): Promise<PanelResult<AgentConnection[]>>;
   setSpeech(id: string, on: boolean): Promise<PanelResult<AgentConnection[]>>;
   copyOpenSessions(id: string): Promise<PanelResult<null>>;
+  /** Minimiza a janela da interface (a barra de título é do HTML) */
+  minimize(): Promise<PanelResult<null>>;
   /** Terminal embutido: roda o shell do usuário (e o `claude` dele) com o login que ele já tem */
   terminal: {
     /** Seletor de pasta do sistema; null = cancelou */
