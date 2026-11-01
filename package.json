@@ -27,7 +27,9 @@
     "audit:prod": "pnpm audit --prod",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "site:dev": "pnpm --filter @tera/site dev",
+    "site:build": "pnpm --filter @tera/site build && vitepress build docs --outDir apps/site/dist/docs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

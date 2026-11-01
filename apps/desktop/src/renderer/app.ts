@@ -7,7 +7,7 @@ import type { Character } from './character';
 import { FrameClock, MOTION_FPS } from './frame-clock';
 import { PointerGesture } from './gesture';
 import { poseFor, type Look } from './look';
-import { Pendulum } from './pendulum';
+import { Pendulum } from '@tera/character/pendulum';
 import { PetDetector } from './pet';
 import { RigCharacter } from './rig/rig-character';
 import { SpriteCharacter } from './sprite-character';

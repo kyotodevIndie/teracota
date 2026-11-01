@@ -27,6 +27,10 @@ export interface PreviewInput {
   facing?: 'left' | 'right';
   /** Tamanho da skin na tela (skin.json "size"): o movimento do corpo é medido nele */
   size?: number;
+  /** Vista explodida (0 = montada): afasta cada camada do pivô do pai, pra mostrar como o rig é feito */
+  explode?: number;
+  /** Balanço do arrasto, em graus (positivo = pés pra direita), como no app */
+  swing?: number;
   /** Força variantes por camada por cima do animador (ex.: mostrar a piscada) */
   variants?: Record<string, string>;
 }
@@ -65,6 +69,7 @@ export class RigPreview {
     if (!input.still) {
       this.wobble.set(pose as Pose, now);
       const wob = this.wobble.get(now, dir, !!input.reducedMotion);
+      if (input.motion === 'drag' && input.swing && !input.reducedMotion) wob.rot -= input.swing;
       // o wobble é em px de tela; aqui a conta é em px do rig
       const toRig = rig.canvas / (input.size ?? 260);
       const pivot: [number, number] = [rig.feet[0], pose === 'drag' ? rig.canvas * GRIP_Y : rig.feet[1]];
@@ -91,6 +96,18 @@ export class RigPreview {
       reducedMotion: !!input.reducedMotion || !!input.still,
     });
     if (input.variants) Object.assign(frame.variants, input.variants);
+    if (input.explode) {
+      const byId = new Map(rig.layers.map((l) => [l.id, l]));
+      for (const l of rig.layers) {
+        const parent = l.parent ? byId.get(l.parent) : undefined;
+        if (!parent) continue;
+        const size = this.scene.sizeOf(parent.id);
+        const cx = size ? size.width / 2 : parent.pivot[0];
+        const cy = size ? size.height / 2 : parent.pivot[1];
+        const o = frame.offsets[l.id] ?? {};
+        frame.offsets[l.id] = { ...o, dx: (o.dx ?? 0) + (l.at[0] - cx) * input.explode, dy: (o.dy ?? 0) + (l.at[1] - cy) * input.explode };
+      }
+    }
     this.lastFrame = frame;
     this.scene.draw(ctx, root, frame.offsets, frame, !!input.debug);
     ctx.setTransform(1, 0, 0, 1, 0, 0);

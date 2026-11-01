@@ -78,6 +78,24 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
+  apps/site:
+    devDependencies:
+      '@tera/character':
+        specifier: workspace:*
+        version: link:../../packages/character
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(vite@8.3.1(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0))
+
   apps/skin-studio:
     devDependencies:
       '@tera/character':

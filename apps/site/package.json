@@ -1,0 +1,21 @@
+{
+  "name": "@tera/site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Site da Tera (GitHub Pages): página interativa com a Tera de verdade no navegador",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --serve",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@tera/character": "workspace:*",
+    "@types/node": "^26.6.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  },
+  "author": "Thallys Morais",
+  "license": "MIT"
+}

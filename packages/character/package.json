@@ -12,7 +12,8 @@
     "./animator": "./src/animator.ts",
     "./wobble": "./src/wobble.ts",
     "./preview": "./src/preview.ts",
-    "./states": "./src/states.ts"
+    "./states": "./src/states.ts",
+    "./pendulum": "./src/pendulum.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

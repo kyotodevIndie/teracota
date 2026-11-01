@@ -30,6 +30,10 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Site novo** (`apps/site`, GitHub Pages): a Tera de verdade no navegador acompanha quem
+  lê de seção em seção (pula até lá, dá pra pegar e soltar), uma demo guiada pela rolagem
+  (um Claude Code de mentirinha e a Tera reagindo), a interface com os temas, o celular
+  em 3D e a vista explodida do rig. A documentação passa a ficar em `/docs`
 - **Tera no celular** (rede de casa, estilo WhatsApp Web): Ajustes → Celular → ler o QR
   code; o PC pergunta antes de conectar. O celular acompanha sessões, pedidos das IAs,
   limites e cartões de plugins, ao vivo, e vibra quando chega um pedido. Tudo cifrado com a

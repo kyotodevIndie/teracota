@@ -1,12 +1,13 @@
 name: Site (GitHub Pages)
 
-# Publica o site (VitePress, pasta docs/) no GitHub Pages.
+# Publica o site no GitHub Pages: a página interativa (apps/site) na raiz e a
+# documentação (VitePress, pasta docs/) em /docs.
 # Por enquanto só roda MANUALMENTE (Actions → "Site (GitHub Pages)" → Run workflow),
 # pra nada ir ao ar sem aprovação. Depois do lançamento, dá pra publicar a cada push
 # na main acrescentando:
 #   push:
 #     branches: [main]
-#     paths: ['docs/**']
+#     paths: ['docs/**', 'apps/site/**', 'assets/skins/tera-rig/**', 'packages/character/**']
 #
 # Pré-requisito (uma vez): Settings → Pages → Source: "GitHub Actions".
 on:
@@ -36,11 +37,11 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm docs:build
+      - run: pnpm site:build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: apps/site/dist
 
   deploy:
     needs: build

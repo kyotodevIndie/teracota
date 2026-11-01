@@ -1,9 +1,10 @@
 // Site do Teracota (VitePress). Português na raiz, inglês em /en/.
-// Deploy: .github/workflows/docs.yml (GitHub Pages), disparado manualmente.
+// Deploy: .github/workflows/docs.yml (GitHub Pages, junto com o site em apps/site), manual.
 import { defineConfig, type DefaultTheme, type HeadConfig } from 'vitepress';
 
 const REPO = 'https://github.com/kyotodevIndie/teracota';
-const BASE = '/teracota/';
+// o site novo (apps/site) fica na raiz; a documentação, em /docs
+const BASE = '/teracota/docs/';
 const SITE = `https://kyotodevindie.github.io${BASE}`;
 const OG_IMAGE = `${SITE}og.png`;
 

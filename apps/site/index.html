@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Teracota — a companheira de desktop do seu agente de código</title>
+  <meta name="description" content="Tera é uma personagem de desktop que reage ao Claude Code (e a outras IAs) em tempo real: acompanha as sessões, avisa quando precisam de você e comemora quando terminam. Open source." />
+  <meta property="og:title" content="Teracota" />
+  <meta property="og:description" content="Seu agente de código ganha uma companheira no desktop." />
+  <meta property="og:image" content="og.png" />
+  <meta name="theme-color" content="#120f18" />
+  <link rel="icon" href="favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="site.css" />
+</head>
+<body>
+  <a class="skip" href="#conteudo">Pular pro conteúdo</a>
+  <!-- a Tera companheira: uma só pra página toda, anda de seção em seção (src/companion.ts) -->
+  <div class="companion" id="companion" aria-hidden="true"><canvas id="tera"></canvas></div>
+  <div class="bubble" id="bubble" role="status" aria-live="polite" hidden></div>
+  <header class="nav">
+    <a class="logo" href="#topo"><span class="logo-dot"></span>Teracota</a>
+    <nav aria-label="Seções">
+      <a href="#demo">Demo</a>
+      <a href="#interface">Interface</a>
+      <a href="#celular">Celular</a>
+      <a href="#skins">Skins</a>
+      <a href="#plugins">Plugins</a>
+      <a href="docs/">Docs</a>
+    </nav>
+    <a class="btn small" href="https://github.com/kyotodevIndie/teracota" rel="noopener">GitHub</a>
+  </header>
+
+  <main id="conteudo">
+    <!-- ===== hero: a Tera de verdade ===== -->
+    <section id="topo" class="hero">
+      <div class="aurora" aria-hidden="true"></div>
+      <div class="hero-text">
+        <span class="kicker">Open source · roda na sua máquina</span>
+        <h1 class="kinetic"><span>Seu</span> <span>agente</span> <span>de</span> <span>código</span> <span>ganha</span> <span>uma</span> <em><span>companheira</span></em><span>.</span></h1>
+        <p class="lead">A Tera mora no seu desktop e acompanha o Claude Code (e outras IAs) em tempo real: lê junto, digita junto, avisa quando precisam de você e comemora quando terminam.</p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/kyotodevIndie/teracota/releases/latest" rel="noopener">Baixar</a>
+          <a class="btn" href="#demo">Ver ela trabalhando ↓</a>
+        </div>
+        <p class="hint">Psiu: <strong>clique</strong> ou <strong>arraste</strong> a Tera. Role a página: ela vem junto.</p>
+      </div>
+      <div class="hero-stage">
+        <div class="tera-slot" data-slot="hero" data-size="560" role="img" aria-label="A Tera, uma gatinha em 2D: olha pro mouse, reage ao clique e balança quando é arrastada"></div>
+        <div class="shadow" aria-hidden="true"></div>
+      </div>
+      <div class="scroll-cue" aria-hidden="true"><span></span></div>
+    </section>
+
+    <!-- ===== demo: terminal + Tera + interface ===== -->
+    <section id="demo" class="pinned">
+      <div class="pin">
+      <header class="section-head">
+        <span class="kicker">Demo · role pra avançar</span>
+        <h2>Ela sabe o que está acontecendo.</h2>
+        <p>A sua rolagem é o relógio: um Claude Code de mentirinha trabalha, cada passo vira uma reação da Tera e um cartão na interface.</p>
+        <div class="progress" aria-hidden="true"><span id="demo-progress"></span></div>
+      </header>
+      <div class="demo">
+        <div class="term" aria-label="Terminal de demonstração">
+          <div class="term-bar"><span></span><span></span><span></span><em>~/dev/api-pagamentos — claude</em></div>
+          <pre id="term-out" aria-live="polite"></pre>
+        </div>
+        <div class="demo-tera">
+          <div class="tera-slot" data-slot="demo" data-size="320"></div>
+          <span class="state-pill" id="demo-state">Ociosa</span>
+        </div>
+        <div class="stack theme-vidro" id="demo-stack" aria-label="Interface da Tera">
+          <div class="glass topbar"><span class="dot"></span><strong>Agora</strong><span class="sub" id="demo-sub">· 2 sessões</span><span class="grow"></span><span class="chip-usage"><i>C</i>42%</span></div>
+          <div id="demo-cards" class="cards"></div>
+          <div class="glass navbar"><span class="on">Agora</span><span>Terminal</span><span>Sessões</span><span>Ajustes</span></div>
+        </div>
+      </div>
+      <div class="controls" role="group" aria-label="Provocar a Tera">
+        <button type="button" data-act="permission">🙋 Pedir permissão</button>
+        <button type="button" data-act="question">❓ Fazer pergunta</button>
+        <button type="button" data-act="error">💢 Dar erro</button>
+        <button type="button" data-act="done">✨ Terminar</button>
+      </div>
+      </div>
+    </section>
+
+    <!-- ===== interface + temas ===== -->
+    <section id="interface" class="section split">
+      <div>
+        <span class="kicker">Interface</span>
+        <h2>Presa nela, como notificações.</h2>
+        <p>Clicou na Tera, a interface abre em cima dela (sem espaço, embaixo) e vai junto quando você arrasta. Cartões de vidro empilhados: sessões ao vivo, pedidos das IAs no topo, terminal com o seu <code>claude</code>, limites de uso por IA.</p>
+        <div class="theme-picker" role="radiogroup" aria-label="Tema da interface">
+          <button type="button" role="radio" aria-checked="true" data-theme="vidro"><i class="sw sw-vidro"></i>Vidro</button>
+          <button type="button" role="radio" aria-checked="false" data-theme="aurora"><i class="sw sw-aurora"></i>Aurora</button>
+          <button type="button" role="radio" aria-checked="false" data-theme="claro"><i class="sw sw-claro"></i>Claro</button>
+          <button type="button" role="radio" aria-checked="false" data-theme="contraste"><i class="sw sw-contraste"></i>Contraste</button>
+        </div>
+        <ul class="ticks">
+          <li>Um chip por IA com os limites do plano (passe o mouse)</li>
+          <li>Pedido chega com a interface fechada? Ele aparece sozinho, perto dela</li>
+          <li>Terminal embutido com o seu <code>claude</code> e o login que você já usa</li>
+        </ul>
+      </div>
+      <div class="stack-wrap">
+        <div class="stack theme-vidro reveal-stack" id="theme-stack">
+          <div class="glass topbar"><span class="dot warn"></span><strong>Agora</strong><span class="sub warn">· 1 esperando</span><span class="grow"></span>
+            <span class="chip-usage hoverable" tabindex="0">
+              <i>C</i>42%
+              <span class="pop glass" role="tooltip">
+                <b>Claude · Pro</b>
+                <span class="meter"><span>Limite de 5 horas</span><small>Redefine às 14:10</small><strong>42%</strong></span><span class="bar"><span style="width:42%"></span></span>
+                <span class="meter"><span>Semanal</span><small>Reinicia sex., 03:00</small><strong>25%</strong></span><span class="bar"><span style="width:25%"></span></span>
+              </span>
+            </span>
+            <span class="chip-usage warn"><i class="cx">Cx</i>86%</span>
+          </div>
+          <div class="glass card request"><b>api-pagamentos</b><small>Claude Code · agora</small><span>Quer rodar um comando</span><code>npm run migrate -- --env=dev</code></div>
+          <div class="glass card"><b>teracota</b><small>Claude Code · 1 min</small><span>Editando · <code>src/renderer/app.ts</code></span></div>
+          <div class="glass card"><b>Foco · 18:42</b><small>Pomodoro</small><span class="bar"><span style="width:26%"></span></span></div>
+          <div class="glass navbar"><span class="on">Agora</span><span>Terminal</span><span>Sessões</span><span>Ajustes</span></div>
+          <span class="stack-tail"></span>
+        </div>
+        <div class="tera-slot" data-slot="interface" data-size="230"></div>
+      </div>
+    </section>
+
+    <!-- ===== celular ===== -->
+    <section id="celular" class="section split reverse">
+      <div class="phone-wrap" id="phone-wrap">
+        <div class="tera-slot side" data-slot="celular" data-size="220"></div>
+        <div class="phone" id="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen" id="phone-screen"></div>
+        </div>
+      </div>
+      <div>
+        <span class="kicker">No celular</span>
+        <h2>Leia o QR e acompanhe do sofá.</h2>
+        <p>Igual ao WhatsApp Web, com os papéis trocados: o PC trabalha, o celular acompanha. Na rede de casa, cifrado de ponta a ponta com a chave que vai no QR (ela nunca passa pela rede), e nada conecta sem o seu "sim" no PC.</p>
+        <button type="button" class="btn primary" id="phone-pair">Simular pareamento</button>
+      </div>
+    </section>
+
+    <!-- ===== skins ===== -->
+    <section id="skins" class="section split">
+      <div>
+        <span class="kicker">Skins</span>
+        <h2>Monte a sua Tera.</h2>
+        <p>O <strong>Skin Studio</strong> monta e anima personagens em camadas (pivôs, poses, expressões, piscada, fala, passos) com o mesmo motor do app. O <code>tera-skin</code> valida e renderiza uma folha de conferência — feito pra trabalhar junto com agentes de código.</p>
+        <div class="chips-row" id="pose-chips" role="group" aria-label="Pose"></div>
+        <div class="chips-row" id="expr-chips" role="group" aria-label="Expressão"></div>
+        <label class="explode">Vista explodida <input id="explode" type="range" min="0" max="1" step="0.01" value="0" /></label>
+        <label class="explode check"><input id="pivots" type="checkbox" /> Mostrar pivôs</label>
+        <pre class="code"><span class="c"># uma skin nova, já funcionando</span>
+pnpm skin new minha-tera --nome "Minha Tera"
+pnpm skin studio minha-tera     <span class="c"># editor visual</span>
+pnpm skin render minha-tera     <span class="c"># folha de conferência</span></pre>
+      </div>
+      <div class="studio-stage">
+        <div class="tera-slot" data-slot="skins" data-size="460"></div>
+        <span class="state-pill" id="skin-label">idle · neutral</span>
+      </div>
+    </section>
+
+    <!-- ===== plugins + IAs ===== -->
+    <section id="plugins" class="section split reverse">
+      <pre class="code big"><span class="c">// main.js — roda isolado, só com a API `tera`</span>
+<span class="k">let</span> fim = Date.now() + tera.settings.foco * <span class="n">60_000</span>;
+
+setInterval(() => {
+  <span class="k">const</span> falta = fim - Date.now();
+  tera.card.set(<span class="s">'relogio'</span>, {
+    title: <span class="s">`Foco · ${mmss(falta)}`</span>,
+    progress: <span class="n">1</span> - falta / total,
+  });
+  <span class="k">if</span> (falta <= <span class="n">0</span>) tera.say(<span class="s">'Pausa! 🍅'</span>);
+}, <span class="n">1000</span>);</pre>
+      <div>
+        <span class="kicker">Plugins e outras IAs</span>
+        <h2>Ela cresce com você.</h2>
+        <p>Plugins são uma pasta com um manifesto e um JS que roda isolado: sem acesso ao sistema, rede só nos sites declarados, e cada permissão aprovada por você. Cartões, falas, sessões de outros agentes, limites de uso — o núcleo da Tera não conhece nenhuma IA pelo nome.</p>
+        <div class="plugin-row">
+        <div class="tera-slot" data-slot="plugins" data-size="200"></div>
+        <div class="glass card live-plugin" id="pomodoro"><b id="pomo-title">Foco · 25:00</b><small>🍅 Pomodoro</small><span class="bar"><span id="pomo-bar" style="width:0%"></span></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== final ===== -->
+    <section class="section final" id="fim">
+      <div class="tera-slot" data-slot="fim" data-size="260"></div>
+      <h2>Bora trabalhar junto?</h2>
+      <p>Windows (beta) e Linux. Grátis e open source — usa o Claude Code que você já tem, sem API paga.</p>
+      <div class="cta center">
+        <a class="btn primary" href="https://github.com/kyotodevIndie/teracota/releases/latest" rel="noopener">Baixar a Tera</a>
+        <a class="btn" href="docs/guide/installation">Como instalar</a>
+        <a class="btn" href="docs/dev/contributing">Contribuir</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Teracota · código MIT · arte CC BY 4.0</span>
+    <span><a href="docs/">Documentação</a> · <a href="https://github.com/kyotodevIndie/teracota" rel="noopener">GitHub</a></span>
+  </footer>
+  <script src="site.js"></script>
+</body>
+</html>
