@@ -39,6 +39,12 @@ const appApi: AppPanelApi = {
   setPluginValue: (id, key, value) => ipcRenderer.invoke(APP_PANEL_IPC.setPluginValue, { id, key, value }),
   openPluginsFolder: () => ipcRenderer.invoke(APP_PANEL_IPC.openPluginsFolder),
   rescanPlugins: () => ipcRenderer.invoke(APP_PANEL_IPC.rescanPlugins),
+  remote: () => ipcRenderer.invoke(APP_PANEL_IPC.remote),
+  remoteSet: (on) => ipcRenderer.invoke(APP_PANEL_IPC.remoteSet, { on }),
+  remotePair: () => ipcRenderer.invoke(APP_PANEL_IPC.remotePair),
+  remoteConfirm: (approve) => ipcRenderer.invoke(APP_PANEL_IPC.remoteConfirm, { approve }),
+  remoteRevoke: (id) => ipcRenderer.invoke(APP_PANEL_IPC.remoteRevoke, { id }),
+  onRemote: (cb) => { ipcRenderer.on(APP_PANEL_IPC.remoteChanged, (_e, v) => cb(v)); },
   onSpeech: (cb) => { ipcRenderer.on(APP_PANEL_IPC.speech, (_e, v) => cb(v)); },
   onPlugins: (cb) => { ipcRenderer.on(APP_PANEL_IPC.pluginsChanged, (_e, v) => cb(v)); },
   terminal: {

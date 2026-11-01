@@ -6,6 +6,7 @@ import { APP_PANEL_IPC, type AgentConnection, type TerminalSnapshot } from '../.
 import { THEMES, type LiveSnapshot, type PrefsPatch, type ProviderUsage, type UiPrefs } from '../../shared/live';
 import { GLASS_RANGE } from '../config';
 import type { PluginStatus } from '../../shared/plugins';
+import type { RemoteState } from '../../shared/remote';
 
 export interface AppPanelDeps {
   isPanelSender(sender: unknown): boolean;
@@ -22,6 +23,13 @@ export interface AppPanelDeps {
   expand(): void;
   /** Altura do conteúdo e recorte (validados de novo na janela) */
   layout(height: number, rects: unknown): void;
+  remote: {
+    state(): RemoteState;
+    setEnabled(on: boolean): void;
+    pair(): Promise<void>;
+    confirm(approve: boolean): void;
+    revoke(id: string): void;
+  };
   plugins: {
     list(): PluginStatus[];
     setEnabled(id: string, on: boolean): boolean;
@@ -57,6 +65,9 @@ const schemas = {
     entityMode: z.enum(['single', 'multi']).optional(),
     usage: z.object({ provider: z.string().min(1).max(64), on: z.boolean() }).strict().optional(),
   }).strict(),
+  remoteSet: z.object({ on: z.boolean() }).strict(),
+  remoteConfirm: z.object({ approve: z.boolean() }).strict(),
+  remoteRevoke: z.object({ id: z.string().min(1).max(64) }).strict(),
   setPlugin: z.object({ id: z.string().min(1).max(64), on: z.boolean() }).strict(),
   setPluginValue: z.object({ id: z.string().min(1).max(64), key: z.string().min(1).max(40), value: z.union([z.number(), z.boolean(), z.string().max(500)]) }).strict(),
   layout: z.object({ height: z.number().positive().max(10_000), rects: z.array(z.unknown()).max(64) }).strict(),
@@ -98,6 +109,23 @@ export function makeAppPanelHandlers(deps: AppPanelDeps): Record<string, AppPane
     [APP_PANEL_IPC.expand]: guarded(schemas.connections, async () => {
       deps.expand();
       return { ok: true, data: null };
+    }),
+    [APP_PANEL_IPC.remote]: guarded(schemas.connections, async () => ({ ok: true, data: deps.remote.state() })),
+    [APP_PANEL_IPC.remoteSet]: guarded(schemas.remoteSet, async ({ on }) => {
+      deps.remote.setEnabled(on);
+      return { ok: true, data: deps.remote.state() };
+    }),
+    [APP_PANEL_IPC.remotePair]: guarded(schemas.connections, async () => {
+      await deps.remote.pair();
+      return { ok: true, data: deps.remote.state() };
+    }),
+    [APP_PANEL_IPC.remoteConfirm]: guarded(schemas.remoteConfirm, async ({ approve }) => {
+      deps.remote.confirm(approve);
+      return { ok: true, data: deps.remote.state() };
+    }),
+    [APP_PANEL_IPC.remoteRevoke]: guarded(schemas.remoteRevoke, async ({ id }) => {
+      deps.remote.revoke(id);
+      return { ok: true, data: deps.remote.state() };
     }),
     [APP_PANEL_IPC.plugins]: guarded(schemas.connections, async () => ({ ok: true, data: deps.plugins.list() })),
     [APP_PANEL_IPC.setPlugin]: guarded(schemas.setPlugin, async ({ id, on }) =>

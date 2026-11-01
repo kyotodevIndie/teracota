@@ -341,3 +341,12 @@ button.danger-btn:hover:not(:disabled) { background: rgba(239, 68, 68, 0.95); }
 #root[data-side="above"] #speech { order: 10; }
 #root[data-side="above"] #nav { order: 9; }
 #root[data-side="below"] #speech { order: -1; }
+
+/* Ajustes → Celular */
+.remote { gap: 10px; }
+.remote .qr { width: 220px; height: 220px; align-self: center; border-radius: 12px; background: #fff; padding: 6px; image-rendering: pixelated; }
+.remote .pending { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: 12px; background: rgba(var(--warn-rgb), 0.6); border: 1px solid var(--warn-edge); }
+.remote .pending .row { justify-content: flex-end; }
+.remote .devices { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--edge); padding-top: 8px; }
+.remote .devices .grow { display: flex; flex-direction: column; }
+.remote .err { color: var(--danger); font-size: 12px; }

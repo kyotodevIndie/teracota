@@ -7,6 +7,7 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 ## [Não lançado]
 
 ### Corrigido
+- Arrastando, a Tera não pisca mais pro lado
 - Linux: partes da Tera (braço, cauda, ícone) sumiam por um instante quando a pose mudava;
   arrastando, o balanço cortava as pernas
 - A interface fecha ao clicar fora; trocar de aba não pisca; rolar a lista não corta mais
@@ -29,6 +30,11 @@ versão for `0.x`, o projeto é beta e a API pode mudar entre versões menores.
 - Repositório virou monorepo pnpm (`apps/desktop`, `packages/character`, `packages/agent-bridge`)
 
 ### Adicionado
+- **Tera no celular** (rede de casa, estilo WhatsApp Web): Ajustes → Celular → ler o QR
+  code; o PC pergunta antes de conectar. O celular acompanha sessões, pedidos das IAs,
+  limites e cartões de plugins, ao vivo, e vibra quando chega um pedido. Tudo cifrado com a
+  chave que vem no QR (que não passa pela rede); desconectar nos Ajustes. Só acompanha:
+  responder pedidos pelo celular fica pra depois
 - **Plugins**: uma pasta com manifesto + JS que roda isolado (sem Node, rede só nos sites
   declarados) e fala com a Tera por uma API pequena: cartões na pilha, falas, sessões de
   agente, limites de uso, eventos por HTTP e ajustes próprios. Ligar mostra as permissões e

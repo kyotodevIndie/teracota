@@ -14,8 +14,9 @@ import { BRIDGE_PROVIDERS } from '../integrations';
 import type { EntityManager } from '../manager';
 import { adapterById, connectAgent, connectionStatus, connectOpenSessions, setSpeech } from '../connect-flow';
 import { APP_PANEL_IPC } from '../../shared/app-panel';
-import { DEFAULT_GLASS, type LiveSnapshot, type PrefsPatch, type UiPrefs } from '../../shared/live';
+import { DEFAULT_GLASS, type LiveSnapshot, type PrefsPatch, type ProviderUsage, type UiPrefs } from '../../shared/live';
 import type { PluginHost } from '../plugins/host';
+import type { RemoteServer } from '../remote/server';
 import { getPort } from '../../shared/protocol';
 import { ADAPTERS } from '../integrations';
 import { usageStore } from '../usage';
@@ -120,6 +121,13 @@ export class AgentPanel {
       setPrefs: (patch) => this.setPrefs(patch),
       expand: () => this.window.show(),
       layout,
+      remote: {
+        state: () => this.remote?.state() ?? { enabled: false, address: null, devices: [], pairing: null, pending: null },
+        setEnabled: (on) => this.remote?.setEnabled(on),
+        pair: async () => { await this.remote?.startPairing(); },
+        confirm: (approve) => this.remote?.confirm(approve),
+        revoke: (id) => this.remote?.revoke(id),
+      },
       plugins: {
         list: () => this.pluginHost?.status() ?? [],
         setEnabled: (id, on) => this.pluginHost?.setEnabled(id, on) ?? false,
@@ -181,6 +189,24 @@ export class AgentPanel {
   }
 
   private pluginHost: PluginHost | null = null;
+  private remote: RemoteServer | null = null;
+
+  setRemote(remote: RemoteServer): void {
+    this.remote = remote;
+  }
+
+  /** Celular mudou (QR, pedido de conexão, aparelhos): um pedido de conexão abre a interface */
+  remoteChanged(): void {
+    const state = this.remote?.state();
+    if (!state) return;
+    if (state.pending && !this.window.visible) this.window.show();
+    this.window.sendRaw(APP_PANEL_IPC.remoteChanged, state);
+  }
+
+  /** O que o celular recebe */
+  remoteSnapshot(): { live: LiveSnapshot; usage: ProviderUsage[] } {
+    return { live: this.liveSnapshot(), usage: usageStore.list() };
+  }
 
   setPlugins(host: PluginHost): void {
     this.pluginHost = host;

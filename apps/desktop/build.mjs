@@ -20,6 +20,8 @@ const builds = [
   { ...node, entryPoints: ['src/preload/plugin-preload.ts'], outfile: 'dist/plugin-preload.js', format: 'cjs' },
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/app.ts'], outfile: 'dist/renderer/app.js', format: 'iife' },
   { ...common, platform: 'browser', target: 'chrome130', entryPoints: ['src/renderer/panel.ts'], outfile: 'dist/renderer/panel.js', format: 'iife' },
+  // página do celular (servida na rede de casa): navegadores de celular de uns anos pra cá
+  { ...common, platform: 'browser', target: ['safari15', 'chrome100'], entryPoints: ['src/mobile/mobile.ts'], outfile: 'dist/mobile/mobile.js', format: 'iife' },
   { ...node, entryPoints: ['scripts/agent-smoke.ts'], outfile: 'dist/scripts/agent-smoke.js', format: 'cjs' },
   { ...node, entryPoints: ['scripts/demo.ts'], outfile: 'dist/scripts/demo.js', format: 'cjs' },
   { ...node, entryPoints: ['scripts/import-skin.ts'], outfile: 'dist/scripts/import-skin.js', format: 'cjs' },
@@ -33,6 +35,8 @@ async function copyStatic() {
   await mkdir('dist/renderer', { recursive: true });
   await Promise.all(STATIC.map((f) => copyFile(`src/renderer/${f}`, `dist/renderer/${f}`)));
   await copyFile('node_modules/@xterm/xterm/css/xterm.css', 'dist/renderer/xterm.css');
+  await mkdir('dist/mobile', { recursive: true });
+  await Promise.all(['index.html', 'mobile.css'].map((f) => copyFile(`src/mobile/${f}`, `dist/mobile/${f}`)));
   await mkdir('dist/scripts/rig-inspect', { recursive: true });
   await copyFile('scripts/rig-inspect/index.html', 'dist/scripts/rig-inspect/index.html');
 }

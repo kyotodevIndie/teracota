@@ -3,6 +3,7 @@
 import type { PanelResult } from '@tera/agent-bridge/contract';
 import type { LiveSnapshot, PanelPlacement, PrefsPatch, ProviderUsage, UiPrefs } from './live';
 import type { PluginStatus } from './plugins';
+import type { RemoteState } from './remote';
 
 export type PanelResultLike<T> = PanelResult<T>;
 
@@ -30,6 +31,12 @@ export const APP_PANEL_IPC = {
   openPluginsFolder: 'tera:open-plugins-folder',
   rescanPlugins: 'tera:rescan-plugins',
   pluginsChanged: 'tera:plugins-changed',
+  remote: 'tera:remote',
+  remoteSet: 'tera:remote-set',
+  remotePair: 'tera:remote-pair',
+  remoteConfirm: 'tera:remote-confirm',
+  remoteRevoke: 'tera:remote-revoke',
+  remoteChanged: 'tera:remote-changed',
   /** main -> renderer: a Tera falou (com a interface aberta, a fala aparece nela) */
   speech: 'tera:speech',
   /** renderer -> main, sem resposta: altura do conteúdo e recorte dos cartões */
@@ -106,6 +113,13 @@ export interface AppPanelApi {
   rescanPlugins(): Promise<PanelResult<PluginStatus[]>>;
   onPlugins(cb: (list: PluginStatus[]) => void): void;
   onSpeech(cb: (s: { text: string; from?: string }) => void): void;
+  /** Celular (rede de casa): ligar, QR de pareamento, confirmar, desconectar */
+  remote(): Promise<PanelResult<RemoteState>>;
+  remoteSet(on: boolean): Promise<PanelResult<RemoteState>>;
+  remotePair(): Promise<PanelResult<RemoteState>>;
+  remoteConfirm(approve: boolean): Promise<PanelResult<RemoteState>>;
+  remoteRevoke(id: string): Promise<PanelResult<RemoteState>>;
+  onRemote(cb: (s: RemoteState) => void): void;
   /** Terminal embutido: roda o shell do usuário (e o `claude` dele) com o login que ele já tem */
   terminal: {
     /** Seletor de pasta do sistema; null = cancelou */

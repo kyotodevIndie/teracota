@@ -15,6 +15,8 @@ import { loadFallbackSkin, loadSkin } from './skins';
 import { getAgentPanel, initAgentPanel } from './panel';
 import { usageStore } from './usage';
 import { PluginHost } from './plugins/host';
+import { RemoteServer } from './remote/server';
+import { REMOTE_DEFAULT_PORT } from '../shared/remote';
 
 let manager: EntityManager;
 let tray: Tray | null = null;
@@ -109,6 +111,20 @@ if (relaunchingForX11) {
     }, __dirname);
     panel.setPlugins(plugins);
     plugins.start();
+    // celular na rede de casa (desligado até o usuário ligar nos Ajustes)
+    const remote = new RemoteServer({
+      port: Number(process.env.TERACOTA_REMOTE_PORT) || REMOTE_DEFAULT_PORT,
+      webDir: path.join(__dirname, 'mobile'),
+      enabled: () => manager.remoteConfig.enabled,
+      setEnabled: (on) => manager.setRemoteConfig({ ...manager.remoteConfig, enabled: on }),
+      devices: () => manager.remoteConfig.devices,
+      saveDevices: (devices) => manager.setRemoteConfig({ ...manager.remoteConfig, devices }),
+      snapshot: () => panel.remoteSnapshot(),
+      changed: () => panel.remoteChanged(),
+    });
+    panel.setRemote(remote);
+    remote.start();
+    app.on('before-quit', () => remote.stop());
     app.on('before-quit', () => plugins.stopAll());
     // depois da saudação: se achar um agente instalado e não conectado, oferece conectar
     setTimeout(() => void offerConnection(manager), 5000);

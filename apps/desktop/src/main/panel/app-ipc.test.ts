@@ -25,6 +25,13 @@ function setup() {
     setPrefs: vi.fn(async (patch: Partial<UiPrefs>) => ({ ...PREFS, ...patch })),
     expand: vi.fn(),
     layout: vi.fn(),
+    remote: {
+      state: vi.fn(() => ({ enabled: false, address: null, devices: [], pairing: null, pending: null })),
+      setEnabled: vi.fn(),
+      pair: vi.fn(async () => {}),
+      confirm: vi.fn(),
+      revoke: vi.fn(),
+    },
     plugins: {
       list: vi.fn(() => []),
       setEnabled: vi.fn((id: string) => id === 'pomodoro'),

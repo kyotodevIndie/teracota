@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { EntityMode, MoveMode } from '../shared/ipc';
 import { THEMES, type ThemeId } from '../shared/live';
+import type { StoredDevice } from './remote/server';
 
 export interface Config {
   moveMode: MoveMode;
@@ -24,6 +25,18 @@ export interface Config {
   uiGlass?: number;
   /** Plugins: ligado, permissões aprovadas e valores dos ajustes, por id */
   plugins?: Record<string, PluginConfig>;
+  /** Tera no celular (rede de casa): ligado e os celulares pareados (com a chave de cada um) */
+  remote?: { enabled: boolean; devices: StoredDevice[] };
+}
+
+function parseRemote(raw: unknown): Config['remote'] {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  if (!raw || typeof raw !== 'object') return undefined;
+  const devices = (Array.isArray(o.devices) ? o.devices : []).filter((d): d is StoredDevice => {
+    const x = d as Record<string, unknown>;
+    return typeof x?.id === 'string' && typeof x.name === 'string' && typeof x.key === 'string' && typeof x.pairedAt === 'number';
+  });
+  return { enabled: o.enabled === true, devices };
 }
 
 export interface PluginConfig {
@@ -80,6 +93,7 @@ export function loadConfig(): Config {
       ...(raw.reducedMotion === true && { reducedMotion: true }),
       ...(THEMES.includes(raw.uiTheme as ThemeId) && { uiTheme: raw.uiTheme }),
       ...(parsePlugins(raw.plugins) && { plugins: parsePlugins(raw.plugins) }),
+      ...(parseRemote(raw.remote) && { remote: parseRemote(raw.remote) }),
       ...(typeof raw.uiGlass === 'number' && raw.uiGlass >= GLASS_RANGE.min && raw.uiGlass <= GLASS_RANGE.max && { uiGlass: raw.uiGlass }),
       // `ui`, `companion` e `companionMuted` eram do Mini Companion (removido): são descartados,
       // e quem estava no modo mini volta pra Tera completa

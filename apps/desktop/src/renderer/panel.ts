@@ -12,6 +12,7 @@ import { mountLayout } from './panel-layout';
 import { mountLive } from './panel-live';
 import { mountSettings } from './panel-settings';
 import { mountTerminalTab } from './panel-terminal';
+import { mountRemote } from './panel-remote';
 import { mountUsage } from './panel-usage';
 
 const api = window.teracotaPanel!;
@@ -314,6 +315,8 @@ const terminalTab = mountTerminalTab({ api: appApi.terminal, unwrap });
 const live = mountLive({ api: appApi, changed });
 const usage = mountUsage({ changed });
 const settings = mountSettings({ api: appApi, unwrap, changed, onTheme: (t: ThemeId) => terminalTab.applyTheme(t) });
+
+mountRemote({ api: appApi, unwrap, changed, onPending: () => showView('settings') });
 
 // Terminal | Conversa (API)
 const SUBTABS = [

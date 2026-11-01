@@ -177,6 +177,14 @@ export class EntityManager {
     return { moveMode: this.moveMode, reducedMotion: this.reducedMotion, entityMode: this.mode };
   }
 
+  get remoteConfig(): NonNullable<Config['remote']> {
+    return this.config.remote ?? { enabled: false, devices: [] };
+  }
+
+  setRemoteConfig(remote: NonNullable<Config['remote']>): void {
+    this.updateConfig({ remote });
+  }
+
   get pluginConfig(): NonNullable<Config['plugins']> {
     return this.config.plugins ?? {};
   }
